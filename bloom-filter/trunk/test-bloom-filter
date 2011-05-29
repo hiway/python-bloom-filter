@@ -20,37 +20,42 @@ def my_range(maximum):
 		yield value
 		value += 1
 
-def test(included, trials, error_rate):
+def test(order, included, trials, error_rate):
 	'''Some quick automatic tests for the bloom filter class'''
 
 	all_good = True
 
-	bloom_filter = bloom_filter_mod.Bloom_filter(ideal_num_elements=trials * 2, error_rate=error_rate)
+	bloom_filter = bloom_filter_mod.Bloom_filter(ideal_num_elements=trials, error_rate=error_rate)
 	print(repr(bloom_filter))
-	for include in included:
-		bloom_filter.add(include)
+	for step in order:
+		if step == 1:
+			for include in included:
+				bloom_filter.add(include)
 
-	include_in_count = sum(include in bloom_filter for include in included)
-	if include_in_count == len(included):
-		# Good
-		pass
-	else:
-		sys.stderr.write('Include count bad: %s, %d\n' % (include_in_count, len(included)))
-		all_good = False
+			include_in_count = sum(include in bloom_filter for include in included)
+			if include_in_count == len(included):
+				# Good
+				pass
+			else:
+				sys.stderr.write('Include count bad: %s, %d\n' % (include_in_count, len(included)))
+				all_good = False
 
-	false_positives = 0
-	for trialno in my_range(trials):
-		if trialno % 10000 == 0:
-			sys.stderr.write('trialno countdown: %d\n' % (trials-trialno))
-		dummy = trialno
-		while True:
-			candidate = ''.join(random.sample(string.ascii_letters, 5))
-			# If we accidentally found a real include, try again
-			if candidate in included:
-				continue
-			if candidate in bloom_filter:
-				false_positives += 1
-			break
+		elif step == 2:
+			false_positives = 0
+			for trialno in my_range(trials):
+				if trialno % 10000 == 0:
+					sys.stderr.write('trialno countdown: %d\n' % (trials-trialno))
+				dummy = trialno
+				while True:
+					candidate = ''.join(random.sample(string.ascii_letters, 5))
+					# If we accidentally found a real include, try again
+					if candidate in included:
+						continue
+					if candidate in bloom_filter:
+						false_positives += 1
+					break
+		else:
+			raise ValueError('step is not 1 or 2')
 
 	#print('%d true negatives and %d false positives out of %d trials' % (trials - false_positives, false_positives, trials))
 	actual_error_rate = float(false_positives) / trials
@@ -89,9 +94,11 @@ def main():
 
 	random_content = [ random_string() for dummy in range(1000) ]
 
-	all_good &= test(states, trials=100000, error_rate=0.01)
+	all_good &= test([1, 2], states, trials=100000, error_rate=0.01)
 
-	all_good &= test(random_content, trials=1000000, error_rate=0.1)
+	all_good &= test([1, 2], random_content, trials=1000000, error_rate=0.1)
+
+	all_good &= test([2, 1], [ 'a', 'b', 'c'], trials=100, error_rate=0.000001)
 
 	if all_good:
 		sys.stderr.write('%s: All tests passed\n' % sys.argv[0])
