@@ -20,7 +20,7 @@ def my_range(maximum):
 		yield value
 		value += 1
 
-def test(order, included, trials, error_rate):
+def primary_test(order, included, trials, error_rate):
 	'''Some quick automatic tests for the bloom filter class'''
 
 	all_good = True
@@ -79,6 +79,71 @@ def random_string():
 		list_.append(character)
 	return ''.join(list_)
 
+def and_test():
+	'''Test the & operator'''
+
+	all_good = True
+
+	abc = bloom_filter_mod.Bloom_filter(ideal_num_elements=100, error_rate=0.01)
+	for character in [ 'a', 'b', 'c' ]:
+		abc += character
+
+	bcd = bloom_filter_mod.Bloom_filter(ideal_num_elements=100, error_rate=0.01)
+	for character in [ 'b', 'c', 'd' ]:
+		bcd += character
+
+	abc_and_bcd = abc
+	abc_and_bcd &= bcd
+
+	if 'a' in abc_and_bcd:
+		sys.stderr.write('a in abc_and_bcd, but should not be')
+		all_good = False
+	if not 'b' in abc_and_bcd:
+		sys.stderr.write('b not in abc_and_bcd, but should be')
+		all_good = False
+	if not 'c' in abc_and_bcd:
+		sys.stderr.write('c not in abc_and_bcd, but should be')
+		all_good = False
+	if 'd' in abc_and_bcd:
+		sys.stderr.write('d in abc_and_bcd, but should not be')
+		all_good = False
+
+	return all_good
+	
+def or_test():
+	'''Test the | operator'''
+
+	all_good = True
+
+	abc = bloom_filter_mod.Bloom_filter(ideal_num_elements=100, error_rate=0.01)
+	for character in [ 'a', 'b', 'c' ]:
+		abc += character
+
+	bcd = bloom_filter_mod.Bloom_filter(ideal_num_elements=100, error_rate=0.01)
+	for character in [ 'b', 'c', 'd' ]:
+		bcd += character
+
+	abc_and_bcd = abc
+	abc_and_bcd |= bcd
+
+	if not 'a' in abc_and_bcd:
+		sys.stderr.write('a not in abc_and_bcd, but should be')
+		all_good = False
+	if not 'b' in abc_and_bcd:
+		sys.stderr.write('b not in abc_and_bcd, but should be')
+		all_good = False
+	if not 'c' in abc_and_bcd:
+		sys.stderr.write('c not in abc_and_bcd, but should be')
+		all_good = False
+	if not 'd' in abc_and_bcd:
+		sys.stderr.write('d not in abc_and_bcd, but should be')
+		all_good = False
+	if 'e' in abc_and_bcd:
+		sys.stderr.write('e in abc_and_bcd, but should be')
+		all_good = False
+
+	return all_good
+	
 def main():
 	'''Unit tests for Bloom_filter class'''
 
@@ -94,11 +159,15 @@ def main():
 
 	random_content = [ random_string() for dummy in range(1000) ]
 
-	all_good &= test([1, 2], states, trials=100000, error_rate=0.01)
+	all_good &= primary_test([1, 2], states, trials=10000, error_rate=0.01)
 
-	all_good &= test([1, 2], random_content, trials=1000000, error_rate=0.1)
+	all_good &= primary_test([1, 2], random_content, trials=10000, error_rate=0.1)
 
-	all_good &= test([2, 1], [ 'a', 'b', 'c'], trials=100, error_rate=0.000001)
+	all_good &= primary_test([2, 1], [ 'a', 'b', 'c'], trials=100, error_rate=0.000001)
+
+	all_good &= and_test()
+
+	all_good &= or_test()
 
 	if all_good:
 		sys.stderr.write('%s: All tests passed\n' % sys.argv[0])
