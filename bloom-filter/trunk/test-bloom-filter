@@ -91,7 +91,7 @@ def main():
 
 	all_good &= test(states, trials=100000, error_rate=0.01)
 
-	all_good &= test(random_content, trials=10000000, error_rate=0.001)
+	all_good &= test(random_content, trials=1000000, error_rate=0.1)
 
 	if all_good:
 		sys.stderr.write('%s: All tests passed\n' % sys.argv[0])
