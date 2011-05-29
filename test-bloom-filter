@@ -1,0 +1,47 @@
+#!/usr/bin/python
+
+# pylint: disable=W0402
+# W0402: We want the deprecated string module, for a use that isn't deprecated
+
+'''Unit tests for bloom_filter_mod'''
+
+import random
+import string
+
+import bloom_filter_mod
+
+def tests():
+	'''Some quick automatic tests for the bloom filter class'''
+
+	states = '''Alabama Alaska Arizona Arkansas California Colorado Connecticut
+		Delaware Florida Georgia Hawaii Idaho Illinois Indiana Iowa Kansas
+		Kentucky Louisiana Maine Maryland Massachusetts Michigan Minnesota
+		Mississippi Missouri Montana Nebraska Nevada NewHampshire NewJersey
+		NewMexico NewYork NorthCarolina NorthDakota Ohio Oklahoma Oregon
+		Pennsylvania RhodeIsland SouthCarolina SouthDakota Tennessee Texas Utah
+		Vermont Virginia Washington WestVirginia Wisconsin Wyoming'''.split()
+
+	bloom_filter = bloom_filter_mod.Bloom_filter(num_bits=1000, num_probes=14)
+	for state in states:
+		bloom_filter.add(state)
+
+	states_in_count = sum(state in bloom_filter for state in states)
+	print('%d true positives out of %d trials' % (states_in_count, len(states)))
+
+	trials = 100000
+	false_positives = 0
+	for trialno in range(trials):
+		dummy = trialno
+		while True:
+			candidate = ''.join(random.sample(string.ascii_letters, 5))
+			# If we accidentally found a real state, try again
+			if candidate in states:
+				continue
+			if candidate in bloom_filter:
+				false_positives += 1
+			break
+	print('%d true negatives and %d false positives out of %d trials' % (trials - false_positives, false_positives, trials))
+
+tests()
+
+
