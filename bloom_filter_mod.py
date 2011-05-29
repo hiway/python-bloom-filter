@@ -53,6 +53,10 @@ class Bloom_filter:
 		for i, mask in self.probe_func(self, key):
 			self.array_[i] |= mask
 
+	def __iadd__(self, key):
+		self.add(key)
+		return self
+
 	def _match_template(self, bfilter):
 		'''Compare a sort of signature for two bloom filters.  Used in preparation for binary operations'''
 		return (self.num_bits == bfilter.num_bits \
@@ -67,8 +71,9 @@ class Bloom_filter:
 			# Union b/w two unrelated bloom filter raises this
 			raise ValueError("Mismatched bloom filters")
 
-	def __or__(self, bfilter):
-		return self.union(bfilter)
+	def __ior__(self, bfilter):
+		self.union(bfilter)
+		return self
 
 	def intersection(self, bfilter):
 		'''Compute the set intersection of two bloom filters'''
@@ -78,8 +83,9 @@ class Bloom_filter:
 			# Intersection b/w two unrelated bloom filter raises this
 			raise ValueError("Mismatched bloom filters")
 
-	def __and__(self, bfilter):
-		return self.intersection(bfilter)
+	def __iand__(self, bfilter):
+		self.intersection(bfilter)
+		return self
 
 	def __contains__(self, key):
 		return all(self.array_[i] & mask for i, mask in self.probe_func(self, key))
