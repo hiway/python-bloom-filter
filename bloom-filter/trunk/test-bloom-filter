@@ -21,14 +21,16 @@ def tests():
 		Pennsylvania RhodeIsland SouthCarolina SouthDakota Tennessee Texas Utah
 		Vermont Virginia Washington WestVirginia Wisconsin Wyoming'''.split()
 
-	bloom_filter = bloom_filter_mod.Bloom_filter(num_bits=1000, num_probes=14)
+	trials = 100000
+
+	bloom_filter = bloom_filter_mod.Bloom_filter(ideal_num_elements=trials * 2, error_rate=0.01)
+	print(repr(bloom_filter))
 	for state in states:
 		bloom_filter.add(state)
 
 	states_in_count = sum(state in bloom_filter for state in states)
 	print('%d true positives out of %d trials' % (states_in_count, len(states)))
 
-	trials = 100000
 	false_positives = 0
 	for trialno in range(trials):
 		dummy = trialno
@@ -43,5 +45,4 @@ def tests():
 	print('%d true negatives and %d false positives out of %d trials' % (trials - false_positives, false_positives, trials))
 
 tests()
-
 
