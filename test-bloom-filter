@@ -5,13 +5,79 @@
 
 '''Unit tests for bloom_filter_mod'''
 
+import sys
 import random
 import string
 
 import bloom_filter_mod
 
-def tests():
+def my_range(maximum):
+	'''A range function with consistent semantics on 2.x and 3.x'''
+	value = 0
+	while True:
+		if value >= maximum:
+			break
+		yield value
+		value += 1
+
+def test(included, trials, error_rate):
 	'''Some quick automatic tests for the bloom filter class'''
+
+	all_good = True
+
+	bloom_filter = bloom_filter_mod.Bloom_filter(ideal_num_elements=trials * 2, error_rate=error_rate)
+	print(repr(bloom_filter))
+	for include in included:
+		bloom_filter.add(include)
+
+	include_in_count = sum(include in bloom_filter for include in included)
+	if include_in_count == len(included):
+		# Good
+		pass
+	else:
+		sys.stderr.write('Include count bad: %s, %d\n' % (include_in_count, len(included)))
+		all_good = False
+
+	false_positives = 0
+	for trialno in my_range(trials):
+		if trialno % 10000 == 0:
+			sys.stderr.write('trialno countdown: %d\n' % (trials-trialno))
+		dummy = trialno
+		while True:
+			candidate = ''.join(random.sample(string.ascii_letters, 5))
+			# If we accidentally found a real include, try again
+			if candidate in included:
+				continue
+			if candidate in bloom_filter:
+				false_positives += 1
+			break
+
+	#print('%d true negatives and %d false positives out of %d trials' % (trials - false_positives, false_positives, trials))
+	actual_error_rate = float(false_positives) / trials
+
+	if actual_error_rate > error_rate:
+		sys.stderr.write('%s: Too many false positives: actual: %s, expected: %s\n' % (
+			sys.argv[0],
+			actual_error_rate,
+			error_rate,
+			))
+		all_good = False
+
+	return all_good
+
+def random_string():
+	'''Generate a random, 10 character string - for testing purposes'''
+	list_ = []
+	for chrno in range(10):
+		dummy = chrno
+		character = string.ascii_letters[int(random.random() * 26)]
+		list_.append(character)
+	return ''.join(list_)
+
+def main():
+	'''Unit tests for Bloom_filter class'''
+
+	all_good = True
 
 	states = '''Alabama Alaska Arizona Arkansas California Colorado Connecticut
 		Delaware Florida Georgia Hawaii Idaho Illinois Indiana Iowa Kansas
@@ -21,28 +87,18 @@ def tests():
 		Pennsylvania RhodeIsland SouthCarolina SouthDakota Tennessee Texas Utah
 		Vermont Virginia Washington WestVirginia Wisconsin Wyoming'''.split()
 
-	trials = 100000
+	random_content = [ random_string() for dummy in range(1000) ]
 
-	bloom_filter = bloom_filter_mod.Bloom_filter(ideal_num_elements=trials * 2, error_rate=0.01)
-	print(repr(bloom_filter))
-	for state in states:
-		bloom_filter.add(state)
+	all_good &= test(states, trials=100000, error_rate=0.01)
 
-	states_in_count = sum(state in bloom_filter for state in states)
-	print('%d true positives out of %d trials' % (states_in_count, len(states)))
+	all_good &= test(random_content, trials=10000000, error_rate=0.001)
 
-	false_positives = 0
-	for trialno in range(trials):
-		dummy = trialno
-		while True:
-			candidate = ''.join(random.sample(string.ascii_letters, 5))
-			# If we accidentally found a real state, try again
-			if candidate in states:
-				continue
-			if candidate in bloom_filter:
-				false_positives += 1
-			break
-	print('%d true negatives and %d false positives out of %d trials' % (trials - false_positives, false_positives, trials))
+	if all_good:
+		sys.stderr.write('%s: All tests passed\n' % sys.argv[0])
+		sys.exit(0)
+	else:
+		sys.stderr.write('%s: One or more tests failed\n' % sys.argv[0])
+		sys.exit(1)
 
-tests()
+main()
 
