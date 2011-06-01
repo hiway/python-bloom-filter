@@ -4,7 +4,8 @@
 # Shamelessly borrowed (under MIT license) from http://code.activestate.com/recipes/577686-bloom-filter/
 # About Bloom Filters: http://en.wikipedia.org/wiki/Bloom_filter
 
-# Tweaked a bit by Daniel Richard Stromberg, mostly to make it pass pylint
+# Tweaked a bit by Daniel Richard Stromberg, mostly to make it pass pylint and give it a little nicer
+# __init__ parameters.
 
 import math
 import array
