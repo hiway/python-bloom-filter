@@ -11,6 +11,7 @@ import math
 import array
 import random
 
+
 def get_probes(bfilter, key):
 	'''Generate a bunch of fast hash functions'''
 	hasher = random.Random(key).randrange
@@ -18,6 +19,7 @@ def get_probes(bfilter, key):
 		array_index = hasher(len(bfilter.array_))
 		bit_index = hasher(32)
 		yield array_index, 1 << bit_index
+
 
 class Bloom_filter:
 	'''Probabilistic set membership testing for large sets'''
