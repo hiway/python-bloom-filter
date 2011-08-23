@@ -7,9 +7,10 @@
 
 import sys
 import random
-import string
 
 import bloom_filter_mod
+
+CHARACTERS = 'abcdefghijklmnopqrstuvwxyz1234567890'
 
 def my_range(maximum):
 	'''A range function with consistent semantics on 2.x and 3.x'''
@@ -57,7 +58,6 @@ def primary_test(order, included, trials, error_rate):
 		else:
 			raise ValueError('step is not 1 or 2')
 
-	#print('%d true negatives and %d false positives out of %d trials' % (trials - false_positives, false_positives, trials))
 	actual_error_rate = float(false_positives) / trials
 
 	if actual_error_rate > error_rate:
@@ -70,12 +70,42 @@ def primary_test(order, included, trials, error_rate):
 
 	return all_good
 
+class States:
+	'''Generate the USA's state names'''
+
+	def __init__(self):
+		pass
+
+	states = '''Alabama Alaska Arizona Arkansas California Colorado Connecticut
+		Delaware Florida Georgia Hawaii Idaho Illinois Indiana Iowa Kansas
+		Kentucky Louisiana Maine Maryland Massachusetts Michigan Minnesota
+		Mississippi Missouri Montana Nebraska Nevada NewHampshire NewJersey
+		NewMexico NewYork NorthCarolina NorthDakota Ohio Oklahoma Oregon
+		Pennsylvania RhodeIsland SouthCarolina SouthDakota Tennessee Texas Utah
+		Vermont Virginia Washington WestVirginia Wisconsin Wyoming'''.split()
+
+	@staticmethod
+	def generator():
+		'''Generate the states'''
+		for state in States.states:
+			yield state
+
+	@staticmethod
+	def within(value):
+		'''Is the vaoue in our list of states?'''
+		return value in States.states
+
+	@staticmethod
+	def length():
+		'''What is the length of our contained values?'''
+		return len(States.states)
+
 def random_string():
 	'''Generate a random, 10 character string - for testing purposes'''
 	list_ = []
 	for chrno in range(10):
 		dummy = chrno
-		character = string.ascii_letters[int(random.random() * 26)]
+		character = CHARACTERS[int(random.random() * len(CHARACTERS))]
 		list_.append(character)
 	return ''.join(list_)
 
@@ -149,15 +179,9 @@ def main():
 
 	all_good = True
 
-	states = '''Alabama Alaska Arizona Arkansas California Colorado Connecticut
-		Delaware Florida Georgia Hawaii Idaho Illinois Indiana Iowa Kansas
-		Kentucky Louisiana Maine Maryland Massachusetts Michigan Minnesota
-		Mississippi Missouri Montana Nebraska Nevada NewHampshire NewJersey
-		NewMexico NewYork NorthCarolina NorthDakota Ohio Oklahoma Oregon
-		Pennsylvania RhodeIsland SouthCarolina SouthDakota Tennessee Texas Utah
-		Vermont Virginia Washington WestVirginia Wisconsin Wyoming'''.split()
+	all_good &= test('states', States(), trials=100000, error_rate=0.01)
 
-	random_content = [ random_string() for dummy in range(1000) ]
+	all_good &= test('random', Random_content(), trials=10000, error_rate=0.1)
 
 	all_good &= primary_test([1, 2], states, trials=10000, error_rate=0.01)
 
