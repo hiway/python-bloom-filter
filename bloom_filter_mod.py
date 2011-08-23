@@ -13,7 +13,7 @@ import random
 
 
 def get_probes(bfilter, key):
-	'''Generate a bunch of fast hash functions'''
+	'''Generate a bunch of fast hash functions - the output of this function is knoown tersely in the literature as "K"'''
 	hasher = random.Random(key).randrange
 	for _ in range(bfilter.num_probes):
 		array_index = hasher(len(bfilter.array_))
