@@ -30,8 +30,8 @@ def get_index_bitmask_seed_rnd(bloom_filter, key):
 		yield array_index, 1 << bit_within_word_index
 
 
-MERSENNES1 = [ 2**x - 1 for x in 17, 31, 127 ]
-MERSENNES2 = [ 2**x - 1 for x in 19, 67, 257 ]
+MERSENNES1 = [ 2**x - 1 for x in [ 17, 31, 127 ] ]
+MERSENNES2 = [ 2**x - 1 for x in [ 19, 67, 257 ] ]
 
 def simple_hash(int_list, prime1, prime2, prime3):
 	'''Compute a hash value from a list of integers and 3 primes'''
