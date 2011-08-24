@@ -26,16 +26,16 @@ def test(description, values, trials, error_rate):
 
 	all_good = True
 
-	bloom_filter = bloom_filter_mod.Bloom_filter(ideal_num_elements=trials * 2, error_rate=error_rate)
+	bloom_filter = bloom_filter_mod.Bloom_filter(ideal_num_elements_n=trials * 2, error_rate_p=error_rate)
 	#print(repr(bloom_filter))
 
-	print '\n', description, bloom_filter.num_words, bloom_filter.num_probes
+	print '\n', description, bloom_filter.num_words, bloom_filter.num_probes_k
 
 	print 'adding'
 	for include in values.generator():
 		bloom_filter.add(include)
 
-	print 'testing for appropriate positives'''
+	print 'testing all known members'''
 	include_in_count = sum(include in bloom_filter for include in values.generator())
 	if include_in_count == values.length():
 		# Good
@@ -44,10 +44,10 @@ def test(description, values, trials, error_rate):
 		sys.stderr.write('Include count bad: %s, %d\n' % (include_in_count, values.length()))
 		all_good = False
 
-	print 'testing for false positives'''
+	print 'testing random non-members'''
 	false_positives = 0
 	for trialno in my_range(trials):
-		if trialno % 10000 == 0:
+		if trialno % 100000 == 0:
 			sys.stderr.write('trialno countdown: %d\n' % (trials-trialno))
 		#dummy = trialno
 		while True:
@@ -56,7 +56,7 @@ def test(description, values, trials, error_rate):
 			if values.within(candidate):
 				continue
 			if candidate in bloom_filter:
-				print 'We erroneously think %s is in the filter' % candidate
+				#print 'We erroneously think %s is in the filter' % candidate
 				false_positives += 1
 			break
 
@@ -168,11 +168,11 @@ def and_test():
 
 	all_good = True
 
-	abc = bloom_filter_mod.Bloom_filter(ideal_num_elements=100, error_rate=0.01)
+	abc = bloom_filter_mod.Bloom_filter(ideal_num_elements_n=100, error_rate_p=0.01)
 	for character in [ 'a', 'b', 'c' ]:
 		abc += character
 
-	bcd = bloom_filter_mod.Bloom_filter(ideal_num_elements=100, error_rate=0.01)
+	bcd = bloom_filter_mod.Bloom_filter(ideal_num_elements_n=100, error_rate_p=0.01)
 	for character in [ 'b', 'c', 'd' ]:
 		bcd += character
 
@@ -199,11 +199,11 @@ def or_test():
 
 	all_good = True
 
-	abc = bloom_filter_mod.Bloom_filter(ideal_num_elements=100, error_rate=0.01)
+	abc = bloom_filter_mod.Bloom_filter(ideal_num_elements_n=100, error_rate_p=0.01)
 	for character in [ 'a', 'b', 'c' ]:
 		abc += character
 
-	bcd = bloom_filter_mod.Bloom_filter(ideal_num_elements=100, error_rate=0.01)
+	bcd = bloom_filter_mod.Bloom_filter(ideal_num_elements_n=100, error_rate_p=0.01)
 	for character in [ 'b', 'c', 'd' ]:
 		bcd += character
 
