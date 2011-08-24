@@ -30,13 +30,13 @@ def test(description, values, trials, error_rate):
 	bloom_filter = bloom_filter_mod.Bloom_filter(ideal_num_elements_n=trials * 2, error_rate_p=error_rate)
 	#print(repr(bloom_filter))
 
-	print '\n', description, bloom_filter.num_words, bloom_filter.num_probes_k
+	sys.stdout.write('\n%s %s %s\n' % (description, bloom_filter.num_words, bloom_filter.num_probes_k))
 
-	print 'adding'
+	print('adding')
 	for include in values.generator():
 		bloom_filter.add(include)
 
-	print 'testing all known members'''
+	print('testing all known members')
 	include_in_count = sum(include in bloom_filter for include in values.generator())
 	if include_in_count == values.length():
 		# Good
@@ -45,7 +45,7 @@ def test(description, values, trials, error_rate):
 		sys.stderr.write('Include count bad: %s, %d\n' % (include_in_count, values.length()))
 		all_good = False
 
-	print 'testing random non-members'''
+	print('testing random non-members')
 	false_positives = 0
 	for trialno in my_range(trials):
 		if trialno % 100000 == 0:
