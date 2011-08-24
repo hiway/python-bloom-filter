@@ -7,9 +7,11 @@
 # Tweaked a bit by Daniel Richard Stromberg, mostly to make it pass pylint and give it a little nicer
 # __init__ parameters.
 
+#mport sys
 import math
 import array
 import random
+#mport hashlib
 
 # In the literature:
 # k is the number of probes - we call this num_probes_k
@@ -17,22 +19,63 @@ import random
 # n is the ideal number of elements to eventually be stored in the filter - we call this ideal_num_elements_n
 # p is the desired error rate when full - we call this error_rate_p
 
-def get_probe_index_and_bitmask(bloom_filter, key):
+def get_index_bitmask_seed_rnd(bloom_filter, key):
 	'''Apply num_probes_k hash functions to key.  Generate the array index and bitmask corresponding to each result'''
 
 	# We're using key as a seed to a pseudorandom number generator
 	hasher = random.Random(key).randrange
 	for _ in range(bloom_filter.num_probes_k):
-		# We could precompute this length for speed.  But we don't
 		array_index = hasher(bloom_filter.num_words)
-		bit_index = hasher(32)
-		yield array_index, 1 << bit_index
+		bit_within_word_index = hasher(32)
+		yield array_index, 1 << bit_within_word_index
+
+
+MERSENNES1 = [ 2**x - 1 for x in 17, 31, 127 ]
+MERSENNES2 = [ 2**x - 1 for x in 19, 67, 257 ]
+
+def simple_hash(int_list, prime1, prime2, prime3):
+	'''Compute a hash value from a list of integers and 3 primes'''
+	result = 0
+	for integer in int_list:
+		result += ((result + integer + prime1) * prime2) % prime3
+	return result
+
+def hash1(int_list):
+	'''Basic hash function #1'''
+	return simple_hash(int_list, MERSENNES1[0], MERSENNES1[1], MERSENNES1[2])
+
+def hash2(int_list):
+	'''Basic hash function #2'''
+	return simple_hash(int_list, MERSENNES2[0], MERSENNES2[1], MERSENNES2[2])
+
+def get_index_bitmask_lin_comb(bloom_filter, key):
+	'''Apply num_probes_k hash functions to key.  Generate the array index and bitmask corresponding to each result'''
+
+	# This one assumes key is either bytes or str (or other list of integers)
+
+	if isinstance(key[0], int):
+		int_list = key
+	elif isinstance(key[0], str):
+		int_list = [ ord(char) for char in key ]
+	else:
+		raise TypeError
+
+	hash_value1 = hash1(int_list)
+	hash_value2 = hash2(int_list)
+
+	# We're using linear combinations of hash_value1 and hash_value2 to obtain num_probes_k hash functions
+	for probeno in range(1, bloom_filter.num_probes_k + 1):
+		bit_index = hash_value1 + probeno * hash_value2
+		bit_within_word_index = bit_index % 32
+		array_index = (bit_index // 32) % bloom_filter.num_words
+		yield array_index, 1 << bit_within_word_index
 
 
 class Bloom_filter:
 	'''Probabilistic set membership testing for large sets'''
 
-	def __init__(self, ideal_num_elements_n, error_rate_p, probe_offsetter=get_probe_index_and_bitmask):
+	#def __init__(self, ideal_num_elements_n, error_rate_p, probe_offsetter=get_index_bitmask_seed_rnd):
+	def __init__(self, ideal_num_elements_n, error_rate_p, probe_offsetter=get_index_bitmask_lin_comb):
 		if ideal_num_elements_n <= 0:
 			raise ValueError('ideal_num_elements_n must be > 0')
 		if not (0 < error_rate_p < 1):
@@ -56,6 +99,15 @@ class Bloom_filter:
 		# Verified against http://en.wikipedia.org/wiki/Bloom_filter#Probability_of_false_positives
 		real_num_probes_k = (self.num_bits_m / self.ideal_num_elements_n) * math.log(2)
 		self.num_probes_k = int(math.ceil(real_num_probes_k))
+
+# This comes close, but often isn't the same value
+#		alternative_real_num_probes_k = -math.log(self.error_rate_p) / math.log(2)
+#
+#		if abs(real_num_probes_k - alternative_real_num_probes_k) > 1e-6:
+#			sys.stderr.write('real_num_probes_k: %f, alternative_real_num_probes_k: %f\n' % 
+#				(real_num_probes_k, alternative_real_num_probes_k)
+#				)
+#			sys.exit(1)
 
 		self.probe_offsetter = probe_offsetter
 
