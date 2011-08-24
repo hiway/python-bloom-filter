@@ -6,6 +6,7 @@
 '''Unit tests for bloom_filter_mod'''
 
 import sys
+import math
 import random
 
 import bloom_filter_mod
@@ -161,7 +162,7 @@ class Evens:
 
 	def length(self):
 		'''How many members?'''
-		return self.maximum // 2
+		return int(math.ceil(self.maximum / 2.0))
 
 def and_test():
 	'''Test the & operator'''
