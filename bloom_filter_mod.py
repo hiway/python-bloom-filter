@@ -60,7 +60,13 @@ def get_index_bitmask_lin_comb(bloom_filter, key):
 
 	# This one assumes key is either bytes or str (or other list of integers)
 
-	if isinstance(key[0], int):
+	if isinstance(key, int) or isinstance(key, long):
+		int_list = []
+		temp = key
+		while temp:
+			int_list.append(temp % 256)
+			temp //= 256
+	elif isinstance(key[0], int):
 		int_list = key
 	elif isinstance(key[0], str):
 		int_list = [ ord(char) for char in key ]
