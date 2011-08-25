@@ -1,11 +1,11 @@
 
 This bloom filter implementation:
-1) Has a constructor that accepts a maximum intended size and maximum appropriate error (false positive) rate, and
+1) Has a constructor that accepts a maximum comfortable number of members and maximum appropriate error (false positive) rate, and
    derives the fiddly bits from that; most bloom filter modules ask the enduser to specify the fiddly bits themselves.
 2) Has a nice test suite, including checks for error rate.
 3) Is in pure Python that'll run on CPython 2.x, CPython 3.x, PyPy or Jython.
 4) Has a pair of simple, fast hash functions that give a good error rate - they're better than many of the alternatives,
-   They're not Mumur or Jenkins, but the tests confirm that they're working well.
+   They're not Murmur or Jenkins, but the tests strongly suggest that they're working well.
 5) Passes pylint and pep8.
 6) Supports adding elements, testing for membership, and'ing sets and or'ing sets.
 
