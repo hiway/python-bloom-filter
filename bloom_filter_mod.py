@@ -21,6 +21,7 @@ import random
 # n is the ideal number of elements to eventually be stored in the filter - we call this ideal_num_elements_n
 # p is the desired error rate when full - we call this error_rate_p
 
+
 def get_index_bitmask_seed_rnd(bloom_filter, key):
 	'''Apply num_probes_k hash functions to key.  Generate the array index and bitmask corresponding to each result'''
 
@@ -32,8 +33,9 @@ def get_index_bitmask_seed_rnd(bloom_filter, key):
 		yield array_index, 1 << bit_within_word_index
 
 
-MERSENNES1 = [ 2**x - 1 for x in [ 17, 31, 127 ] ]
-MERSENNES2 = [ 2**x - 1 for x in [ 19, 67, 257 ] ]
+MERSENNES1 = [ 2 ** x - 1 for x in [ 17, 31, 127 ] ]
+MERSENNES2 = [ 2 ** x - 1 for x in [ 19, 67, 257 ] ]
+
 
 def simple_hash(int_list, prime1, prime2, prime3):
 	'''Compute a hash value from a list of integers and 3 primes'''
@@ -42,13 +44,16 @@ def simple_hash(int_list, prime1, prime2, prime3):
 		result += ((result + integer + prime1) * prime2) % prime3
 	return result
 
+
 def hash1(int_list):
 	'''Basic hash function #1'''
 	return simple_hash(int_list, MERSENNES1[0], MERSENNES1[1], MERSENNES1[2])
 
+
 def hash2(int_list):
 	'''Basic hash function #2'''
 	return simple_hash(int_list, MERSENNES2[0], MERSENNES2[1], MERSENNES2[2])
+
 
 def get_index_bitmask_lin_comb(bloom_filter, key):
 	'''Apply num_probes_k hash functions to key.  Generate the array index and bitmask corresponding to each result'''
@@ -106,7 +111,7 @@ class Bloom_filter:
 #		alternative_real_num_probes_k = -math.log(self.error_rate_p) / math.log(2)
 #
 #		if abs(real_num_probes_k - alternative_real_num_probes_k) > 1e-6:
-#			sys.stderr.write('real_num_probes_k: %f, alternative_real_num_probes_k: %f\n' % 
+#			sys.stderr.write('real_num_probes_k: %f, alternative_real_num_probes_k: %f\n' %
 #				(real_num_probes_k, alternative_real_num_probes_k)
 #				)
 #			sys.exit(1)
