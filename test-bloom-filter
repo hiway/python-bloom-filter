@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/local/pypy-1.6/bin/pypy
 
 # pylint: disable=W0402
 # W0402: We want the deprecated string module, for a use that isn't deprecated
