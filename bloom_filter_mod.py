@@ -14,6 +14,7 @@ import math
 import array
 import random
 #mport hashlib
+#mport numbers
 
 # In the literature:
 # k is the number of probes - we call this num_probes_k
@@ -60,7 +61,8 @@ def get_index_bitmask_lin_comb(bloom_filter, key):
 
 	# This one assumes key is either bytes or str (or other list of integers)
 
-	if isinstance(key, int) or isinstance(key, long):
+	# I'd love to check for long too, but that doesn't exist in 3.2, and 2.5 doesn't have the numbers.Integral base type
+	if isinstance(key, int):
 		int_list = []
 		temp = key
 		while temp:
@@ -71,7 +73,7 @@ def get_index_bitmask_lin_comb(bloom_filter, key):
 	elif isinstance(key[0], str):
 		int_list = [ ord(char) for char in key ]
 	else:
-		raise TypeError
+		raise TypeError('Sorry, I do not know how to hash this type')
 
 	hash_value1 = hash1(int_list)
 	hash_value2 = hash2(int_list)
