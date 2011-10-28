@@ -22,15 +22,16 @@ def my_range(maximum):
 		yield value
 		value += 1
 
-def test(description, values, trials, error_rate):
+def test(description, values, trials, error_rate, probe_bitnoer=bloom_filter_mod.get_bitno_lin_comb):
 	'''Some quick automatic tests for the bloom filter class'''
 
 	all_good = True
 
-	bloom_filter = bloom_filter_mod.Bloom_filter(ideal_num_elements_n=trials * 2, error_rate_p=error_rate)
+	bloom_filter = bloom_filter_mod.Bloom_filter(ideal_num_elements_n=trials * 2, error_rate_p=error_rate, probe_bitnoer=probe_bitnoer)
 	#print(repr(bloom_filter))
 
-	sys.stdout.write('\n%s %s %s\n' % (description, bloom_filter.num_words, bloom_filter.num_probes_k))
+	sys.stdout.write('\ndescription: %s num_bits_m: %s num_probes_k: %s\n' % 
+		(description, bloom_filter.num_bits_m, bloom_filter.num_probes_k))
 
 	print('adding')
 	for include in values.generator():
@@ -237,6 +238,7 @@ def main():
 	all_good &= test('states', States(), trials=100000, error_rate=0.01)
 
 	all_good &= test('random', Random_content(), trials=10000, error_rate=0.1)
+	all_good &= test('random', Random_content(), trials=10000, error_rate=0.1, probe_bitnoer=bloom_filter_mod.get_bitno_seed_rnd)
 
 	#for elements in [ 1, 10, 100, 1000 ]:
 	for elements in [ 1, 10, 100, 1000, 10000, 100000, 1000000 ]:
