@@ -23,15 +23,14 @@ import random
 # p is the desired error rate when full - we call this error_rate_p
 
 
-def get_index_bitmask_seed_rnd(bloom_filter, key):
+def get_bitno_seed_rnd(bloom_filter, key):
 	'''Apply num_probes_k hash functions to key.  Generate the array index and bitmask corresponding to each result'''
 
 	# We're using key as a seed to a pseudorandom number generator
 	hasher = random.Random(key).randrange
-	for _ in range(bloom_filter.num_probes_k):
-		array_index = hasher(bloom_filter.num_words)
-		bit_within_word_index = hasher(32)
-		yield array_index, 1 << bit_within_word_index
+	for dummy in range(bloom_filter.num_probes_k):
+		bitno = hasher(bloom_filter.num_bits_m)
+		yield bitno % bloom_filter.num_bits_m
 
 
 MERSENNES1 = [ 2 ** x - 1 for x in [ 17, 31, 127 ] ]
@@ -56,7 +55,7 @@ def hash2(int_list):
 	return simple_hash(int_list, MERSENNES2[0], MERSENNES2[1], MERSENNES2[2])
 
 
-def get_index_bitmask_lin_comb(bloom_filter, key):
+def get_bitno_lin_comb(bloom_filter, key):
 	'''Apply num_probes_k hash functions to key.  Generate the array index and bitmask corresponding to each result'''
 
 	# This one assumes key is either bytes or str (or other list of integers)
@@ -81,16 +80,14 @@ def get_index_bitmask_lin_comb(bloom_filter, key):
 	# We're using linear combinations of hash_value1 and hash_value2 to obtain num_probes_k hash functions
 	for probeno in range(1, bloom_filter.num_probes_k + 1):
 		bit_index = hash_value1 + probeno * hash_value2
-		bit_within_word_index = bit_index % 32
-		array_index = (bit_index // 32) % bloom_filter.num_words
-		yield array_index, 1 << bit_within_word_index
+		yield bit_index % bloom_filter.num_bits_m
 
 
 class Bloom_filter:
 	'''Probabilistic set membership testing for large sets'''
 
 	#def __init__(self, ideal_num_elements_n, error_rate_p, probe_offsetter=get_index_bitmask_seed_rnd):
-	def __init__(self, ideal_num_elements_n, error_rate_p, probe_offsetter=get_index_bitmask_lin_comb):
+	def __init__(self, ideal_num_elements_n, error_rate_p, probe_bitnoer=get_bitno_lin_comb):
 		if ideal_num_elements_n <= 0:
 			raise ValueError('ideal_num_elements_n must be > 0')
 		if not (0 < error_rate_p < 1):
@@ -107,8 +104,7 @@ class Bloom_filter:
 		real_num_bits_m = numerator / denominator
 		self.num_bits_m = int(math.ceil(real_num_bits_m))
 
-		self.num_words = int((self.num_bits_m + 31) / 32)
-		self.array_ = array.array('L', [0]) * self.num_words
+		self.array_ = array.array('L', [0]) * ((self.num_bits_m + 31) // 32)
 
 		# AKA num_offsetters
 		# Verified against http://en.wikipedia.org/wiki/Bloom_filter#Probability_of_false_positives
@@ -124,7 +120,7 @@ class Bloom_filter:
 #				)
 #			sys.exit(1)
 
-		self.probe_offsetter = probe_offsetter
+		self.probe_bitnoer = probe_bitnoer
 
 	def __repr__(self):
 		return 'Bloom_filter(ideal_num_elements_n=%d, error_rate_p=%f, num_bits_m=%d)' % (
@@ -135,7 +131,9 @@ class Bloom_filter:
 
 	def add(self, key):
 		'''Add an element to the filter'''
-		for index, mask in self.probe_offsetter(self, key):
+		for bitno in self.probe_bitnoer(self, key):
+			index, bit_within_word = divmod(bitno, 32)
+			mask = 1 << bit_within_word
 			self.array_[index] |= mask
 
 	def __iadd__(self, key):
@@ -146,7 +144,7 @@ class Bloom_filter:
 		'''Compare a sort of signature for two bloom filters.  Used in preparation for binary operations'''
 		return (self.num_bits_m == bloom_filter.num_bits_m \
 			and self.num_probes_k == bloom_filter.num_probes_k \
-			and self.probe_offsetter == bloom_filter.probe_offsetter)
+			and self.probe_bitnoer == bloom_filter.probe_bitnoer)
 
 	def union(self, bloom_filter):
 		'''Compute the set union of two bloom filters'''
@@ -173,5 +171,12 @@ class Bloom_filter:
 		return self
 
 	def __contains__(self, key):
-		return all(self.array_[i] & mask for i, mask in self.probe_offsetter(self, key))
+		for bitno in self.probe_bitnoer(self, key):
+			wordno, bit_within_word = divmod(bitno, 32)
+			mask = 1 << bit_within_word
+			if not (self.array_[wordno] & mask):
+				return False
+		return True
+				
+		#return all(self.array_[i] & mask for i, mask in self.probe_bitnoer(self, key))
 
