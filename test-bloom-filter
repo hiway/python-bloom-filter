@@ -1,12 +1,14 @@
-#!/usr/local/pypy-1.6/bin/pypy
+#!/usr/bin/python
 
 # pylint: disable=W0402
 # W0402: We want the deprecated string module, for a use that isn't deprecated
 
 '''Unit tests for bloom_filter_mod'''
 
+import os
 import sys
 import math
+import time
 import random
 
 import bloom_filter_mod
@@ -22,12 +24,26 @@ def my_range(maximum):
 		yield value
 		value += 1
 
-def test(description, values, trials, error_rate, probe_bitnoer=bloom_filter_mod.get_bitno_lin_comb):
+def test(description, values, trials, error_rate, probe_bitnoer=bloom_filter_mod.get_bitno_lin_comb, filename=None):
+	# pylint: disable=R0913
+	# R0913: We want a few arguments
 	'''Some quick automatic tests for the bloom filter class'''
+
+	if filename is not None:
+		try:
+			# start fresh
+			os.unlink(filename)
+		except OSError:
+			pass
 
 	all_good = True
 
-	bloom_filter = bloom_filter_mod.Bloom_filter(ideal_num_elements_n=trials * 2, error_rate_p=error_rate, probe_bitnoer=probe_bitnoer)
+	bloom_filter = bloom_filter_mod.Bloom_filter(
+		ideal_num_elements_n=trials * 2, 
+		error_rate_p=error_rate, 
+		probe_bitnoer=probe_bitnoer, 
+		filename=filename,
+		)
 	#print(repr(bloom_filter))
 
 	sys.stdout.write('\ndescription: %s num_bits_m: %s num_probes_k: %s\n' % 
@@ -240,9 +256,31 @@ def main():
 	all_good &= test('random', Random_content(), trials=10000, error_rate=0.1)
 	all_good &= test('random', Random_content(), trials=10000, error_rate=0.1, probe_bitnoer=bloom_filter_mod.get_bitno_seed_rnd)
 
-	#for elements in [ 1, 10, 100, 1000 ]:
-	for elements in [ 1, 10, 100, 1000, 10000, 100000, 1000000 ]:
-		all_good &= test('evens %d' % elements, Evens(elements), trials=elements, error_rate=1e-12)
+	filename = 'bloom-filter-rm-me'
+	all_good &= test('random', Random_content(), trials=10000, error_rate=0.1, filename=filename)
+
+	#for exponent in range(5):
+	for exponent in range(10):
+		elements = int(math.sqrt(10) ** exponent)
+		for filename in [ None, 'bloom-filter-rm-me' ]:
+			time0 = time.time()
+			#if filename is None and elements > 1000000:
+			#	continue
+			all_good &= test(
+				'evens %s %d' % ('array' if filename is None else 'file', elements), 
+				Evens(elements), 
+				trials=elements, 
+				error_rate=1e-12, 
+				filename=filename,
+				)
+			time1 = time.time()
+			delta_t = time1 - time0
+			if filename is None:
+				file_ = open('array.txt', 'a')
+			else:
+				file_ = open('seek.txt', 'a')
+			file_.write('%d %f\n' % (elements, delta_t))
+			file_.close()
 
 	all_good &= and_test()
 
