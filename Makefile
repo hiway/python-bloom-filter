@@ -20,4 +20,5 @@ clean:
 	rm -rf __pycache__
 	rm -f bloom-filter-rm-me
 	rm -f *.ps *.pdf
+	rm -f seek.txt array.txt
 
