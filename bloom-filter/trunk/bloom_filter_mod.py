@@ -9,12 +9,15 @@
 # 2) Improve the hash functions to get a much lower rate of false positives
 # 3) Make it pass pylint
 
+import os
 #mport sys
 import math
 import array
 import random
+#mport bufsock
 #mport hashlib
 #mport numbers
+import python2x3
 
 # In the literature:
 # k is the number of probes - we call this num_probes_k
@@ -22,6 +25,182 @@ import random
 # n is the ideal number of elements to eventually be stored in the filter - we call this ideal_num_elements_n
 # p is the desired error rate when full - we call this error_rate_p
 
+
+def my_range(num_values):
+	'''Generate numbers from 0..num_values-1'''
+
+	value = 0
+	while value < num_values:
+		yield value
+		value += 1
+
+# In the abstract, this is what we want &= and |= to do, but especially for disk-based filters, this is extremely slow
+#class Backend_set_operations:
+#	'''Provide &= and |= for backends'''
+#	# pylint: disable=W0232
+#	# W0232: We don't need an __init__ method; we're never instantiated directly
+#	def __iand__(self, other):
+#		assert self.num_bits == other.num_bits
+#
+#		for bitno in my_range(num_bits):
+#			if self.is_set(bitno) and other.is_set(bitno):
+#				self[bitno].set()
+#			else:
+#				self[bitno].clear()
+#
+#	def __ior__(self, other):
+#		assert self.num_bits == other.num_bits
+#
+#		for bitno in xrange(num_bits):
+#			if self[bitno] or other[bitno]:
+#				self[bitno].set()
+#			else:
+#				self[bitno].clear()
+
+class File_seek_backend:
+	'''Backend storage for our "array of bits" using a file in which we seek'''
+
+	effs = 2^8 - 1
+
+	def __init__(self, num_bits, filename):
+		self.num_bits = num_bits
+		self.num_chars = (self.num_bits + 7) // 8
+		flags = os.O_RDWR | os.O_CREAT
+		if hasattr(os, 'O_BINARY'):
+			flags |= getattr(os, 'O_BINARY')
+		self.file_ = os.open(filename, flags)
+		os.lseek(self.file_, self.num_chars + 1, os.SEEK_SET)
+		os.write(self.file_, python2x3.null_byte)
+
+	def is_set(self, bitno):
+		'''Return true iff bit number bitno is set'''
+		byteno, bit_within_wordno = divmod(bitno, 8)
+		mask = 1 << bit_within_wordno
+		os.lseek(self.file_, byteno, os.SEEK_SET)
+		char = os.read(self.file_, 1)
+		if isinstance(char, str):
+			byte = ord(char)
+		else:
+			byte = int(char)
+		return byte & mask
+
+	def set(self, bitno):
+		'''set bit number bitno to true'''
+
+		byteno, bit_within_byteno = divmod(bitno, 8)
+		mask = 1 << bit_within_byteno
+		os.lseek(self.file_, byteno, os.SEEK_SET)
+		char = os.read(self.file_, 1)
+		if isinstance(char, str):
+			byte = ord(char)
+			was_char = True
+		else:
+			byte = char
+			was_char = False
+		byte |= mask
+		os.lseek(self.file_, byteno, os.SEEK_SET)
+		if was_char:
+			os.write(self.file_, chr(byte))
+		else:
+			os.write(self.file_, byte)
+
+	def clear(self, bitno):
+		'''clear bit number bitno - set it to false'''
+
+		byteno, bit_within_byteno = divmod(bitno, 8)
+		mask = 1 << bit_within_byteno
+		os.lseek(self.file_, byteno, os.SEEK_SET)
+		char = os.read(self.file_, 1)
+		if isinstance(char, str):
+			byte = ord(char)
+			was_char = True
+		else:
+			byte = int(char)
+			was_char = False
+		byte &= File_seek_backend.effs - mask
+		os.lseek(self.file_, byteno, os.SEEK_SET)
+		if was_char:
+			os.write(chr(byte))
+		else:
+			os.write(byte)
+
+	# These are quite slow ways to do iand and ior, but they should work, and a faster version is going to take more time
+	def __iand__(self, other):
+		assert self.num_bits == other.num_bits
+
+		for bitno in my_range(self.num_bits):
+			if self.is_set(bitno) and other.is_set(bitno):
+				self.set(bitno)
+			else:
+				self.clear(bitno)
+
+		return self
+
+	def __ior__(self, other):
+		assert self.num_bits == other.num_bits
+
+		for bitno in my_range(self.num_bits):
+			if self.is_set(bitno) or other.is_set(bitno):
+				self.set(bitno)
+			else:
+				self.clear(bitno)
+
+		return self
+
+	def close(self):
+		'''Close the file'''
+		os.close(self.file_)
+
+
+class Array_backend:
+	'''Backend storage for our "array of bits" using a python array of integers'''
+
+	effs = 2^32 - 1
+
+	def __init__(self, num_bits):
+		self.num_bits = num_bits
+		self.num_words = (self.num_bits + 31) // 32
+		self.array_ = array.array('L', [0]) * self.num_words
+
+	def is_set(self, bitno):
+		'''Return true iff bit number bitno is set'''
+		wordno, bit_within_wordno = divmod(bitno, 32)
+		mask = 1 << bit_within_wordno
+		return self.array_[wordno] & mask
+
+	def set(self, bitno):
+		'''set bit number bitno to true'''
+		wordno, bit_within_wordno = divmod(bitno, 32)
+		mask = 1 << bit_within_wordno
+		self.array_[wordno] |= mask
+
+	def clear(self, bitno):
+		'''clear bit number bitno - set it to false'''
+		wordno, bit_within_wordno = divmod(bitno, 32)
+		mask = Array_backend.effs - (1 << bit_within_wordno)
+		self.array_[wordno] &= mask
+
+	# It'd be nice to do __iand__ and __ior__ in a base class, but that'd be Much slower
+
+	def __iand__(self, other):
+		assert self.num_bits == other.num_bits
+
+		for wordno in my_range(self.num_words):
+			self.array_[wordno] &= other.array_[wordno]
+
+		return self
+
+	def __ior__(self, other):
+		assert self.num_bits == other.num_bits
+
+		for wordno in my_range(self.num_words):
+			self.array_[wordno] |= other.array_[wordno]
+
+		return self
+
+	def close(self):
+		'''Noop for compatibility with the file+seek backend'''
+		pass
 
 def get_bitno_seed_rnd(bloom_filter, key):
 	'''Apply num_probes_k hash functions to key.  Generate the array index and bitmask corresponding to each result'''
@@ -87,7 +266,7 @@ class Bloom_filter:
 	'''Probabilistic set membership testing for large sets'''
 
 	#def __init__(self, ideal_num_elements_n, error_rate_p, probe_offsetter=get_index_bitmask_seed_rnd):
-	def __init__(self, ideal_num_elements_n, error_rate_p, probe_bitnoer=get_bitno_lin_comb):
+	def __init__(self, ideal_num_elements_n, error_rate_p, probe_bitnoer=get_bitno_lin_comb, filename=None):
 		if ideal_num_elements_n <= 0:
 			raise ValueError('ideal_num_elements_n must be > 0')
 		if not (0 < error_rate_p < 1):
@@ -104,7 +283,12 @@ class Bloom_filter:
 		real_num_bits_m = numerator / denominator
 		self.num_bits_m = int(math.ceil(real_num_bits_m))
 
-		self.array_ = array.array('L', [0]) * ((self.num_bits_m + 31) // 32)
+		if filename is None:
+			self.backend = Array_backend(self.num_bits_m)
+		else:
+			self.backend = File_seek_backend(self.num_bits_m, filename)
+
+		#array.array('L', [0]) * ((self.num_bits_m + 31) // 32)
 
 		# AKA num_offsetters
 		# Verified against http://en.wikipedia.org/wiki/Bloom_filter#Probability_of_false_positives
@@ -132,9 +316,7 @@ class Bloom_filter:
 	def add(self, key):
 		'''Add an element to the filter'''
 		for bitno in self.probe_bitnoer(self, key):
-			index, bit_within_word = divmod(bitno, 32)
-			mask = 1 << bit_within_word
-			self.array_[index] |= mask
+			self.backend.set(bitno)
 
 	def __iadd__(self, key):
 		self.add(key)
@@ -148,11 +330,7 @@ class Bloom_filter:
 
 	def union(self, bloom_filter):
 		'''Compute the set union of two bloom filters'''
-		if self._match_template(bloom_filter):
-			self.array_ = [a | b for a, b in zip(self.array_, bloom_filter.array_)]
-		else:
-			# Union b/w two unrelated bloom filter raises this
-			raise ValueError("Mismatched bloom filters")
+		self.backend |= bloom_filter.backend
 
 	def __ior__(self, bloom_filter):
 		self.union(bloom_filter)
@@ -160,11 +338,7 @@ class Bloom_filter:
 
 	def intersection(self, bloom_filter):
 		'''Compute the set intersection of two bloom filters'''
-		if self._match_template(bloom_filter):
-			self.array_ = [a & b for a, b in zip(self.array_, bloom_filter.array_)]
-		else:
-			# Intersection b/w two unrelated bloom filter raises this
-			raise ValueError("Mismatched bloom filters")
+		self.backend &= bloom_filter.backend
 
 	def __iand__(self, bloom_filter):
 		self.intersection(bloom_filter)
@@ -172,9 +346,10 @@ class Bloom_filter:
 
 	def __contains__(self, key):
 		for bitno in self.probe_bitnoer(self, key):
-			wordno, bit_within_word = divmod(bitno, 32)
-			mask = 1 << bit_within_word
-			if not (self.array_[wordno] & mask):
+			#wordno, bit_within_word = divmod(bitno, 32)
+			#mask = 1 << bit_within_word
+			#if not (self.array_[wordno] & mask):
+			if not self.backend.is_set(bitno):
 				return False
 		return True
 				
