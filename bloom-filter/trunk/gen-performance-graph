@@ -1,0 +1,68 @@
+#!/usr/bin/python
+
+#
+# Copyright (C) 2000-2005 by Yasushi Saito (yasushi.saito@gmail.com)
+# 
+# Pychart is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the
+# Free Software Foundation; either version 2, or (at your option) any
+# later version.
+#
+# Pychart is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+# for more details.
+#
+
+import sys
+from pychart import *
+
+def get_timing(filename):
+	file_ = open(filename, 'r')
+	list_ = []
+	for line in file_:
+		fields = line.split()
+		set_size = float(fields[0])
+		duration = float(fields[1])
+		list_.append( ( set_size, duration ) )
+	file_.close()
+	return list_
+
+def get_array_timing():
+	return get_timing('array.txt')
+
+def get_seek_timing():
+	return get_timing('seek.txt')
+
+def main():
+	theme.get_options()
+	theme.output_format = 'pdf'
+	theme.use_color = 1
+	theme.reinitialize()
+	#print >> sys.stderr, dir(theme)
+
+	width = 800
+	height = width * 4 // 5
+
+	can = canvas.default_canvas()
+	size = (width, height)
+	ar = area.T(size = size, legend=legend.T(), x_axis = axis.X(format="%d", label="Set size"), y_axis = axis.Y(format="%d", label="Time"))
+	array_timing_data = get_array_timing()
+	print >> sys.stderr, array_timing_data
+	lp = line_plot.T(data=array_timing_data, label="Array")
+	ar.add_plot(lp)
+					
+	ar.draw()
+	seek_timing_data = get_seek_timing()
+	print >> sys.stderr, seek_timing_data
+
+	lp = line_plot.T(data=seek_timing_data, label="Seek")
+	ar.add_plot(lp)
+					
+	ar.draw()
+
+	#can.show(ar.x_pos(4), ar.y_pos(970), "/a50{}seek")
+
+main()
+
+
