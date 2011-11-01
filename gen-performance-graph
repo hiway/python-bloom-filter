@@ -34,28 +34,44 @@ def get_array_timing():
 def get_seek_timing():
 	return get_timing('seek.txt')
 
+def desired_y_max(*list_):
+	maximum = 0.0
+	for element in list_:
+		for set_size, duration in element:
+			maximum = max(duration, maximum)
+	return maximum
+
 def main():
 	theme.get_options()
 	theme.output_format = 'pdf'
 	theme.use_color = 1
 	theme.reinitialize()
-	#print >> sys.stderr, dir(theme)
 
 	width = 800
 	height = width * 4 // 5
+	size = (width, height)
+
+	array_timing_data = get_array_timing()
+	seek_timing_data = get_seek_timing()
+
+	y_max = desired_y_max(array_timing_data, seek_timing_data)
 
 	can = canvas.default_canvas()
-	size = (width, height)
-	ar = area.T(size = size, legend=legend.T(), x_axis = axis.X(format="%d", label="Set size"), y_axis = axis.Y(format="%d", label="Time"))
-	array_timing_data = get_array_timing()
-	print >> sys.stderr, array_timing_data
+
+	ar = area.T(
+		size = size,
+		legend=legend.T(),
+		x_range = (1, None),
+		y_range = (0.0001, y_max + 100),
+		x_coord = log_coord.T(),
+		y_coord = log_coord.T(),
+		x_axis = axis.X(format="%d", label="Set size"),
+		y_axis = axis.Y(format="%d", label="Time"),
+		)
+
 	lp = line_plot.T(data=array_timing_data, label="Array")
 	ar.add_plot(lp)
 					
-	ar.draw()
-	seek_timing_data = get_seek_timing()
-	print >> sys.stderr, seek_timing_data
-
 	lp = line_plot.T(data=seek_timing_data, label="Seek")
 	ar.add_plot(lp)
 					
