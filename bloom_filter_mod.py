@@ -57,10 +57,11 @@ def my_range(num_values):
 #			else:
 #				self[bitno].clear()
 
+
 class File_seek_backend:
 	'''Backend storage for our "array of bits" using a file in which we seek'''
 
-	effs = 2^8 - 1
+	effs = 2 ^ 8 - 1
 
 	def __init__(self, num_bits, filename):
 		self.num_bits = num_bits
@@ -155,7 +156,7 @@ class File_seek_backend:
 class Array_backend:
 	'''Backend storage for our "array of bits" using a python array of integers'''
 
-	effs = 2^32 - 1
+	effs = 2 ^ 32 - 1
 
 	def __init__(self, num_bits):
 		self.num_bits = num_bits
@@ -201,6 +202,7 @@ class Array_backend:
 	def close(self):
 		'''Noop for compatibility with the file+seek backend'''
 		pass
+
 
 def get_bitno_seed_rnd(bloom_filter, key):
 	'''Apply num_probes_k hash functions to key.  Generate the array index and bitmask corresponding to each result'''
@@ -353,6 +355,6 @@ class Bloom_filter:
 			if not self.backend.is_set(bitno):
 				return False
 		return True
-				
+
 		#return all(self.array_[i] & mask for i, mask in self.probe_bitnoer(self, key))
 
