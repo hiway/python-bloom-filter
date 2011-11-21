@@ -240,13 +240,14 @@ def get_bitno_lin_comb(bloom_filter, key):
 	# This one assumes key is either bytes or str (or other list of integers)
 
 	# I'd love to check for long too, but that doesn't exist in 3.2, and 2.5 doesn't have the numbers.Integral base type
-	if isinstance(key, int):
+	if hasattr(key, '__divmod__'):
 		int_list = []
 		temp = key
 		while temp:
-			int_list.append(temp % 256)
-			temp //= 256
-	elif isinstance(key[0], int):
+			quotient, remainder = divmod(temp, 256)
+			int_list.append(remainder)
+			temp = quotient
+	elif hasattr(key[0], '__divmod__'):
 		int_list = key
 	elif isinstance(key[0], str):
 		int_list = [ ord(char) for char in key ]
