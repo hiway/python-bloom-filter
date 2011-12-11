@@ -260,6 +260,11 @@ def give_description(filename):
 def main():
 	'''Unit tests for Bloom_filter class'''
 
+	if sys.argv[1:] == [ '--performance-test' ]:
+		performance_test = True
+	else:
+		performance_test = False
+
 	all_good = True
 
 	all_good &= test('states', States(), trials=100000, error_rate=0.01)
@@ -274,39 +279,40 @@ def main():
 
 	all_good &= or_test()
 
-	sqrt_of_10 = math.sqrt(10)
-	#for exponent in range(5): # this is a lot, but probably not unreasonable
-	for exponent in range(19): # this is a lot, but probably not unreasonable
-		elements = int(sqrt_of_10 ** exponent + 0.5)
-		for filename in [ None, 'bloom-filter-rm-me', ('bloom-filter-rm-me', 768 * 2**20), ('bloom-filter-rm-me', -1) ]:
-			description = give_description(filename)
-			key = '%s %s' % (description, elements)
-			database = anydbm.open('performance-numbers', 'c')
-			if key in database:
+	if performance_test:
+		sqrt_of_10 = math.sqrt(10)
+		#for exponent in range(5): # this is a lot, but probably not unreasonable
+		for exponent in range(19): # this is a lot, but probably not unreasonable
+			elements = int(sqrt_of_10 ** exponent + 0.5)
+			for filename in [ None, 'bloom-filter-rm-me', ('bloom-filter-rm-me', 768 * 2**20), ('bloom-filter-rm-me', -1) ]:
+				description = give_description(filename)
+				key = '%s %s' % (description, elements)
+				database = anydbm.open('performance-numbers', 'c')
+				if key in database:
+					database.close()
+					continue
+				if elements >= 100000000 and description == 'seek':
+					continue
+				if elements >= 100000000 and description == 'mmap':
+					continue
+				if elements >= 1000000000 and description == 'array':
+					continue
+				time0 = time.time()
+				all_good &= test(
+					'evens %s elements: %d' % (give_description(filename), elements),
+					Evens(elements), 
+					trials=elements, 
+					error_rate=1e-2, 
+					filename=filename,
+					)
+				time1 = time.time()
+				delta_t = time1 - time0
+				#file_ = open('%s.txt' % description, 'a')
+				#file_.write('%d %f\n' % (elements, delta_t))
+				#file_.close()
+				database = anydbm.open('performance-numbers', 'c')
+				database[key] = '%f' % delta_t
 				database.close()
-				continue
-			if elements >= 100000000 and description == 'seek':
-				continue
-			if elements >= 100000000 and description == 'mmap':
-				continue
-			if elements >= 1000000000 and description == 'array':
-				continue
-			time0 = time.time()
-			all_good &= test(
-				'evens %s elements: %d' % (give_description(filename), elements),
-				Evens(elements), 
-				trials=elements, 
-				error_rate=1e-2, 
-				filename=filename,
-				)
-			time1 = time.time()
-			delta_t = time1 - time0
-			#file_ = open('%s.txt' % description, 'a')
-			#file_.write('%d %f\n' % (elements, delta_t))
-			#file_.close()
-			database = anydbm.open('performance-numbers', 'c')
-			database[key] = '%f' % delta_t
-			database.close()
 
 	if all_good:
 		sys.stderr.write('%s: All tests passed\n' % sys.argv[0])
