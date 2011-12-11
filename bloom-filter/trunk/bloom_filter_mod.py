@@ -12,6 +12,7 @@
 import os
 #mport sys
 import math
+import mmap as mmap_mod
 import array
 import random
 #mport bufsock
@@ -56,6 +57,76 @@ def my_range(num_values):
 #				self[bitno].set()
 #			else:
 #				self[bitno].clear()
+
+class Mmap_backend:
+	'''
+	Backend storage for our "array of bits" using an mmap'd file.
+	Please note that this has only been tested on Linux so far: 2011-11-01.
+	'''
+
+	effs = 2^8 - 1
+
+	def __init__(self, num_bits, filename):
+		self.num_bits = num_bits
+		self.num_chars = (self.num_bits + 7) // 8
+		flags = os.O_RDWR | os.O_CREAT
+		if hasattr(os, 'O_BINARY'):
+			flags |= getattr(os, 'O_BINARY')
+		self.file_ = os.open(filename, flags)
+		os.lseek(self.file_, self.num_chars + 1, os.SEEK_SET)
+		os.write(self.file_, python2x3.null_byte)
+		self.mmap = mmap_mod.mmap(self.file_, self.num_chars)
+
+	def is_set(self, bitno):
+		'''Return true iff bit number bitno is set'''
+		byteno, bit_within_wordno = divmod(bitno, 8)
+		mask = 1 << bit_within_wordno
+		char = self.mmap[byteno]
+		if isinstance(char, str):
+			byte = ord(char)
+		else:
+			byte = int(char)
+		return byte & mask
+
+	def set(self, bitno):
+		'''set bit number bitno to true'''
+
+		byteno, bit_within_byteno = divmod(bitno, 8)
+		mask = 1 << bit_within_byteno
+		char = self.mmap[byteno]
+		byte = ord(char)
+		byte |= mask
+		self.mmap[byteno] = chr(byte)
+
+	def clear(self, bitno):
+		'''clear bit number bitno - set it to false'''
+
+		byteno, bit_within_byteno = divmod(bitno, 8)
+		mask = 1 << bit_within_byteno
+		char = self.mmap[byteno]
+		byte = ord(char)
+		byte &= Mmap_backend.effs - mask
+		self.mmap[byteno] = chr(byte)
+
+	def __iand__(self, other):
+		assert self.num_bits == other.num_bits
+
+		for byteno in my_range(self.num_chars):
+			self.mmap[byteno] = chr(ord(self.mmap[byteno]) & ord(other.mmap[byteno]))
+
+		return self
+
+	def __ior__(self, other):
+		assert self.num_bits == other.num_bits
+
+		for byteno in my_range(self.num_chars):
+			self.mmap[byteno] = chr(ord(self.mmap[byteno]) | ord(other.mmap[byteno]))
+
+		return self
+
+	def close(self):
+		'''Close the file'''
+		os.close(self.file_)
 
 
 class File_seek_backend:
@@ -150,6 +221,141 @@ class File_seek_backend:
 
 	def close(self):
 		'''Close the file'''
+		os.close(self.file_)
+
+
+class Array_then_file_seek_backend:
+	# pylint: disable=R0902
+	# R0902: We kinda need a bunch of instance attributes
+	'''
+	Backend storage for our "array of bits" using a python array of integers up to some maximum number of bytes, then spilling over to a file.
+	This is -not- a cache; we instead save the leftmost bits in RAM, and the rightmost bits (if necessary) in a file.
+	On open, we read from the file to RAM.  On close, we write from RAM to the file.
+	'''
+
+	effs = 2^8 - 1
+
+	def __init__(self, num_bits, filename, max_bytes_in_memory):
+		self.num_bits = num_bits
+		num_chars = (self.num_bits + 7) // 8
+		self.filename = filename
+		self.max_bytes_in_memory = max_bytes_in_memory
+		self.bits_in_memory = min(num_bits, self.max_bytes_in_memory * 8)
+		self.bits_in_file = max(self.num_bits - self.bits_in_memory, 0)
+		self.bytes_in_memory = (self.bits_in_memory + 7) // 8
+		self.bytes_in_file = (self.bits_in_file + 7) // 8
+
+		self.array_ = array.array('B', [0]) * self.bytes_in_memory
+		flags = os.O_RDWR | os.O_CREAT
+		if hasattr(os, 'O_BINARY'):
+			flags |= getattr(os, 'O_BINARY')
+		self.file_ = os.open(filename, flags)
+		os.lseek(self.file_, num_chars + 1, os.SEEK_SET)
+		os.write(self.file_, python2x3.null_byte)
+
+		os.lseek(self.file_, 0, os.SEEK_SET)
+		offset = 0
+		intended_block_len = 2**17
+		while True:
+			if offset + intended_block_len < self.bytes_in_memory:
+				block = os.read(self.file_, intended_block_len)
+			elif offset < self.bytes_in_memory:
+				block = os.read(self.file_, self.bytes_in_memory - offset)
+			else:
+				break
+			for index_in_block, character in enumerate(block):
+				self.array_[offset + index_in_block] = ord(character)
+			offset += intended_block_len
+
+	def is_set(self, bitno):
+		'''Return true iff bit number bitno is set'''
+		byteno, bit_within_byteno = divmod(bitno, 8)
+		mask = 1 << bit_within_byteno
+		if byteno < self.bytes_in_memory:
+			return self.array_[byteno] & mask
+		else:
+			os.lseek(self.file_, byteno, os.SEEK_SET)
+			char = os.read(self.file_, 1)
+			if isinstance(char, str):
+				byte = ord(char)
+			else:
+				byte = int(char)
+			return byte & mask
+
+	def set(self, bitno):
+		'''set bit number bitno to true'''
+		byteno, bit_within_byteno = divmod(bitno, 8)
+		mask = 1 << bit_within_byteno
+		if byteno < self.bytes_in_memory:
+			self.array_[byteno] |= mask
+		else:
+			os.lseek(self.file_, byteno, os.SEEK_SET)
+			char = os.read(self.file_, 1)
+			if isinstance(char, str):
+				byte = ord(char)
+				was_char = True
+			else:
+				byte = char
+				was_char = False
+			byte |= mask
+			os.lseek(self.file_, byteno, os.SEEK_SET)
+			if was_char:
+				os.write(self.file_, chr(byte))
+			else:
+				os.write(self.file_, byte)
+
+	def clear(self, bitno):
+		'''clear bit number bitno - set it to false'''
+		byteno, bit_within_byteno = divmod(bitno, 8)
+		mask = Array_backend.effs - (1 << bit_within_byteno)
+		if byteno < self.bytes_in_memory:
+			self.array_[byteno] &= mask
+		else:
+			os.lseek(self.file_, byteno, os.SEEK_SET)
+			char = os.read(self.file_, 1)
+			if isinstance(char, str):
+				byte = ord(char)
+				was_char = True
+			else:
+				byte = int(char)
+				was_char = False
+			byte &= File_seek_backend.effs - mask
+			os.lseek(self.file_, byteno, os.SEEK_SET)
+			if was_char:
+				os.write(chr(byte))
+			else:
+				os.write(byte)
+
+	# These are quite slow ways to do iand and ior, but they should work, and a faster version is going to take more time
+	def __iand__(self, other):
+		assert self.num_bits == other.num_bits
+
+		for bitno in my_range(self.num_bits):
+			if self.is_set(bitno) and other.is_set(bitno):
+				self.set(bitno)
+			else:
+				self.clear(bitno)
+
+		return self
+
+	def __ior__(self, other):
+		assert self.num_bits == other.num_bits
+
+		for bitno in my_range(self.num_bits):
+			if self.is_set(bitno) or other.is_set(bitno):
+				self.set(bitno)
+			else:
+				self.clear(bitno)
+
+		return self
+
+	def close(self):
+		'''Write the in-memory portion to disk, leave the already-on-disk portion unchanged'''
+
+		os.lseek(self.file_, 0, os.SEEK_SET)
+		for index in my_range(self.bytes_in_memory):
+			self.file_.write(self.array_[index])
+
 		os.close(self.file_)
 
 
@@ -265,11 +471,21 @@ def get_bitno_lin_comb(bloom_filter, key):
 		yield bit_index % bloom_filter.num_bits_m
 
 
+def try_unlink(filename):
+	'''unlink a file.  Don't complain if it's not there'''
+	try:
+		os.unlink(filename)
+	except OSError:
+		pass
+	return
+
 class Bloom_filter:
 	'''Probabilistic set membership testing for large sets'''
 
 	#def __init__(self, ideal_num_elements_n, error_rate_p, probe_offsetter=get_index_bitmask_seed_rnd):
-	def __init__(self, ideal_num_elements_n, error_rate_p, probe_bitnoer=get_bitno_lin_comb, filename=None):
+	def __init__(self, ideal_num_elements_n, error_rate_p, probe_bitnoer=get_bitno_lin_comb, filename=None, start_fresh=False):
+		# pylint: disable=R0913
+		# R0913: We want a few arguments
 		if ideal_num_elements_n <= 0:
 			raise ValueError('ideal_num_elements_n must be > 0')
 		if not (0 < error_rate_p < 1):
@@ -288,7 +504,16 @@ class Bloom_filter:
 
 		if filename is None:
 			self.backend = Array_backend(self.num_bits_m)
+		elif isinstance(filename, tuple) and isinstance(filename[1], int):
+			if start_fresh:
+				try_unlink(filename[0])
+			if filename[1] == -1:
+				self.backend = Mmap_backend(self.num_bits_m, filename[0])
+			else:
+				self.backend = Array_then_file_seek_backend(self.num_bits_m, filename[0], filename[1])
 		else:
+			if start_fresh:
+				try_unlink(filename)
 			self.backend = File_seek_backend(self.num_bits_m, filename)
 
 		#array.array('L', [0]) * ((self.num_bits_m + 31) // 32)
