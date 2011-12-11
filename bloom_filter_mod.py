@@ -12,13 +12,20 @@
 import os
 #mport sys
 import math
-import mmap as mmap_mod
 import array
 import random
 #mport bufsock
 #mport hashlib
 #mport numbers
 import python2x3
+
+try:
+	import mmap as mmap_mod
+except ImportError:
+	# Jython lacks mmap()
+	HAVE_MMAP = False
+else:
+	HAVE_MMAP = True
 
 # In the literature:
 # k is the number of probes - we call this num_probes_k
@@ -59,75 +66,76 @@ def my_range(num_values):
 #				self[bitno].clear()
 
 
-class Mmap_backend:
-	'''
-	Backend storage for our "array of bits" using an mmap'd file.
-	Please note that this has only been tested on Linux so far: 2011-11-01.
-	'''
+if HAVE_MMAP:
+	class Mmap_backend:
+		'''
+		Backend storage for our "array of bits" using an mmap'd file.
+		Please note that this has only been tested on Linux so far: 2011-11-01.
+		'''
 
-	effs = 2 ^ 8 - 1
+		effs = 2 ^ 8 - 1
 
-	def __init__(self, num_bits, filename):
-		self.num_bits = num_bits
-		self.num_chars = (self.num_bits + 7) // 8
-		flags = os.O_RDWR | os.O_CREAT
-		if hasattr(os, 'O_BINARY'):
-			flags |= getattr(os, 'O_BINARY')
-		self.file_ = os.open(filename, flags)
-		os.lseek(self.file_, self.num_chars + 1, os.SEEK_SET)
-		os.write(self.file_, python2x3.null_byte)
-		self.mmap = mmap_mod.mmap(self.file_, self.num_chars)
+		def __init__(self, num_bits, filename):
+			self.num_bits = num_bits
+			self.num_chars = (self.num_bits + 7) // 8
+			flags = os.O_RDWR | os.O_CREAT
+			if hasattr(os, 'O_BINARY'):
+				flags |= getattr(os, 'O_BINARY')
+			self.file_ = os.open(filename, flags)
+			os.lseek(self.file_, self.num_chars + 1, os.SEEK_SET)
+			os.write(self.file_, python2x3.null_byte)
+			self.mmap = mmap_mod.mmap(self.file_, self.num_chars)
 
-	def is_set(self, bitno):
-		'''Return true iff bit number bitno is set'''
-		byteno, bit_within_wordno = divmod(bitno, 8)
-		mask = 1 << bit_within_wordno
-		char = self.mmap[byteno]
-		if isinstance(char, str):
+		def is_set(self, bitno):
+			'''Return true iff bit number bitno is set'''
+			byteno, bit_within_wordno = divmod(bitno, 8)
+			mask = 1 << bit_within_wordno
+			char = self.mmap[byteno]
+			if isinstance(char, str):
+				byte = ord(char)
+			else:
+				byte = int(char)
+			return byte & mask
+
+		def set(self, bitno):
+			'''set bit number bitno to true'''
+
+			byteno, bit_within_byteno = divmod(bitno, 8)
+			mask = 1 << bit_within_byteno
+			char = self.mmap[byteno]
 			byte = ord(char)
-		else:
-			byte = int(char)
-		return byte & mask
+			byte |= mask
+			self.mmap[byteno] = chr(byte)
 
-	def set(self, bitno):
-		'''set bit number bitno to true'''
+		def clear(self, bitno):
+			'''clear bit number bitno - set it to false'''
 
-		byteno, bit_within_byteno = divmod(bitno, 8)
-		mask = 1 << bit_within_byteno
-		char = self.mmap[byteno]
-		byte = ord(char)
-		byte |= mask
-		self.mmap[byteno] = chr(byte)
+			byteno, bit_within_byteno = divmod(bitno, 8)
+			mask = 1 << bit_within_byteno
+			char = self.mmap[byteno]
+			byte = ord(char)
+			byte &= Mmap_backend.effs - mask
+			self.mmap[byteno] = chr(byte)
 
-	def clear(self, bitno):
-		'''clear bit number bitno - set it to false'''
+		def __iand__(self, other):
+			assert self.num_bits == other.num_bits
 
-		byteno, bit_within_byteno = divmod(bitno, 8)
-		mask = 1 << bit_within_byteno
-		char = self.mmap[byteno]
-		byte = ord(char)
-		byte &= Mmap_backend.effs - mask
-		self.mmap[byteno] = chr(byte)
+			for byteno in my_range(self.num_chars):
+				self.mmap[byteno] = chr(ord(self.mmap[byteno]) & ord(other.mmap[byteno]))
 
-	def __iand__(self, other):
-		assert self.num_bits == other.num_bits
+			return self
 
-		for byteno in my_range(self.num_chars):
-			self.mmap[byteno] = chr(ord(self.mmap[byteno]) & ord(other.mmap[byteno]))
+		def __ior__(self, other):
+			assert self.num_bits == other.num_bits
 
-		return self
+			for byteno in my_range(self.num_chars):
+				self.mmap[byteno] = chr(ord(self.mmap[byteno]) | ord(other.mmap[byteno]))
 
-	def __ior__(self, other):
-		assert self.num_bits == other.num_bits
+			return self
 
-		for byteno in my_range(self.num_chars):
-			self.mmap[byteno] = chr(ord(self.mmap[byteno]) | ord(other.mmap[byteno]))
-
-		return self
-
-	def close(self):
-		'''Close the file'''
-		os.close(self.file_)
+		def close(self):
+			'''Close the file'''
+			os.close(self.file_)
 
 
 class File_seek_backend:
