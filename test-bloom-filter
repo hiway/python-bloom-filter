@@ -1,7 +1,8 @@
 #!/usr/bin/python
 
-# pylint: disable=W0402
+# pylint: disable=W0402,W0404
 # W0402: We want the deprecated string module, for a use that isn't deprecated
+# W0404: We need to import anydbm or dbm
 
 '''Unit tests for bloom_filter_mod'''
 
@@ -9,7 +10,11 @@
 import sys
 import math
 import time
-import anydbm
+try:
+	import anydbm
+except ImportError:
+	import dbm as anydbm
+
 import random
 
 import bloom_filter_mod
