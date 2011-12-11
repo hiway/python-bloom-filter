@@ -5,10 +5,11 @@
 
 '''Unit tests for bloom_filter_mod'''
 
-import os
+#mport os
 import sys
 import math
 import time
+import anydbm
 import random
 
 import bloom_filter_mod
@@ -25,33 +26,32 @@ def my_range(maximum):
 		value += 1
 
 def test(description, values, trials, error_rate, probe_bitnoer=bloom_filter_mod.get_bitno_lin_comb, filename=None):
-	# pylint: disable=R0913
+	# pylint: disable=R0913,R0914
 	# R0913: We want a few arguments
+	# R0914: We want some local variables too.  This is just test code.
 	'''Some quick automatic tests for the bloom filter class'''
 
-	if filename is not None:
-		try:
-			# start fresh
-			os.unlink(filename)
-		except OSError:
-			pass
-
 	all_good = True
+
+	divisor = 100000
 
 	bloom_filter = bloom_filter_mod.Bloom_filter(
 		ideal_num_elements_n=trials * 2, 
 		error_rate_p=error_rate, 
 		probe_bitnoer=probe_bitnoer, 
 		filename=filename,
+		start_fresh=True,
 		)
-	#print(repr(bloom_filter))
 
 	sys.stdout.write('\ndescription: %s num_bits_m: %s num_probes_k: %s\n' % 
 		(description, bloom_filter.num_bits_m, bloom_filter.num_probes_k))
 
-	print('adding')
-	for include in values.generator():
-		bloom_filter.add(include)
+	print('starting to add values to an empty bloom filter')
+	for valueno, value in enumerate(values.generator()):
+		reverse_valueno = values.length() - valueno
+		if reverse_valueno % divisor == 0:
+			print('adding valueno %d' % reverse_valueno)
+		bloom_filter.add(value)
 
 	print('testing all known members')
 	include_in_count = sum(include in bloom_filter for include in values.generator())
@@ -65,9 +65,8 @@ def test(description, values, trials, error_rate, probe_bitnoer=bloom_filter_mod
 	print('testing random non-members')
 	false_positives = 0
 	for trialno in my_range(trials):
-		if trialno % 100000 == 0:
+		if trialno % divisor == 0:
 			sys.stderr.write('trialno countdown: %d\n' % (trials-trialno))
-		#dummy = trialno
 		while True:
 			candidate = ''.join(random.sample(CHARACTERS, 5))
 			# If we accidentally found a member, try again
@@ -245,7 +244,19 @@ def or_test():
 		all_good = False
 
 	return all_good
-	
+
+def give_description(filename):
+	'''Return a description of the filename type - could be array, file or hybrid'''
+	if filename is None:
+		return 'array'
+	elif isinstance(filename, tuple):
+		if filename[1] == -1:
+			return 'mmap'
+		else:
+			return 'hybrid'
+	else:
+		return 'seek'
+
 def main():
 	'''Unit tests for Bloom_filter class'''
 
@@ -259,32 +270,43 @@ def main():
 	filename = 'bloom-filter-rm-me'
 	all_good &= test('random', Random_content(), trials=10000, error_rate=0.1, filename=filename)
 
-	#for exponent in range(5):
-	for exponent in range(10):
-		elements = int(math.sqrt(10) ** exponent)
-		for filename in [ None, 'bloom-filter-rm-me' ]:
+	all_good &= and_test()
+
+	all_good &= or_test()
+
+	sqrt_of_10 = math.sqrt(10)
+	#for exponent in range(5): # this is a lot, but probably not unreasonable
+	for exponent in range(19): # this is a lot, but probably not unreasonable
+		elements = int(sqrt_of_10 ** exponent + 0.5)
+		for filename in [ None, 'bloom-filter-rm-me', ('bloom-filter-rm-me', 768 * 2**20), ('bloom-filter-rm-me', -1) ]:
+			description = give_description(filename)
+			key = '%s %s' % (description, elements)
+			database = anydbm.open('performance-numbers', 'c')
+			if key in database:
+				database.close()
+				continue
+			if elements >= 100000000 and description == 'seek':
+				continue
+			if elements >= 100000000 and description == 'mmap':
+				continue
+			if elements >= 1000000000 and description == 'array':
+				continue
 			time0 = time.time()
-			#if filename is None and elements > 1000000:
-			#	continue
 			all_good &= test(
-				'evens %s %d' % ('array' if filename is None else 'file', elements), 
+				'evens %s elements: %d' % (give_description(filename), elements),
 				Evens(elements), 
 				trials=elements, 
-				error_rate=1e-12, 
+				error_rate=1e-2, 
 				filename=filename,
 				)
 			time1 = time.time()
 			delta_t = time1 - time0
-			if filename is None:
-				file_ = open('array.txt', 'a')
-			else:
-				file_ = open('seek.txt', 'a')
-			file_.write('%d %f\n' % (elements, delta_t))
-			file_.close()
-
-	all_good &= and_test()
-
-	all_good &= or_test()
+			#file_ = open('%s.txt' % description, 'a')
+			#file_.write('%d %f\n' % (elements, delta_t))
+			#file_.close()
+			database = anydbm.open('performance-numbers', 'c')
+			database[key] = '%f' % delta_t
+			database.close()
 
 	if all_good:
 		sys.stderr.write('%s: All tests passed\n' % sys.argv[0])
