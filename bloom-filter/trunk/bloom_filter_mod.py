@@ -162,7 +162,7 @@ class File_seek_backend:
 		if isinstance(char, str):
 			byte = ord(char)
 		else:
-			byte = int(char)
+			byte = char[0]
 		return byte & mask
 
 	def set(self, bitno):
@@ -176,14 +176,15 @@ class File_seek_backend:
 			byte = ord(char)
 			was_char = True
 		else:
-			byte = char
+			byte = char[0]
 			was_char = False
 		byte |= mask
 		os.lseek(self.file_, byteno, os.SEEK_SET)
 		if was_char:
 			os.write(self.file_, chr(byte))
 		else:
-			os.write(self.file_, byte)
+			char = bytes([ byte ])
+			os.write(self.file_, char)
 
 	def clear(self, bitno):
 		'''clear bit number bitno - set it to false'''
@@ -203,7 +204,8 @@ class File_seek_backend:
 		if was_char:
 			os.write(chr(byte))
 		else:
-			os.write(byte)
+			char = bytes([ byte ])
+			os.write(char)
 
 	# These are quite slow ways to do iand and ior, but they should work, and a faster version is going to take more time
 	def __iand__(self, other):
