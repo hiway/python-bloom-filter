@@ -58,13 +58,14 @@ def my_range(num_values):
 #			else:
 #				self[bitno].clear()
 
+
 class Mmap_backend:
 	'''
 	Backend storage for our "array of bits" using an mmap'd file.
 	Please note that this has only been tested on Linux so far: 2011-11-01.
 	'''
 
-	effs = 2^8 - 1
+	effs = 2 ^ 8 - 1
 
 	def __init__(self, num_bits, filename):
 		self.num_bits = num_bits
@@ -233,7 +234,7 @@ class Array_then_file_seek_backend:
 	On open, we read from the file to RAM.  On close, we write from RAM to the file.
 	'''
 
-	effs = 2^8 - 1
+	effs = 2 ^ 8 - 1
 
 	def __init__(self, num_bits, filename, max_bytes_in_memory):
 		self.num_bits = num_bits
@@ -255,7 +256,7 @@ class Array_then_file_seek_backend:
 
 		os.lseek(self.file_, 0, os.SEEK_SET)
 		offset = 0
-		intended_block_len = 2**17
+		intended_block_len = 2 ** 17
 		while True:
 			if offset + intended_block_len < self.bytes_in_memory:
 				block = os.read(self.file_, intended_block_len)
@@ -478,6 +479,7 @@ def try_unlink(filename):
 	except OSError:
 		pass
 	return
+
 
 class Bloom_filter:
 	'''Probabilistic set membership testing for large sets'''
