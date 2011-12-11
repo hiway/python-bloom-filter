@@ -5,7 +5,7 @@ import anydbm
 from pychart import *
 
 def get_timing(kind):
-	database = anydbm.open('performance-numbers', 'r')
+	database = anydbm.open('performance-numbers', 'c')
 	list_ = []
 	for key in database.keys():
 		fields = key.split()
