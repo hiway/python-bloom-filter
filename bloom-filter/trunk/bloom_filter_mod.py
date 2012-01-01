@@ -183,7 +183,7 @@ class File_seek_backend:
 		if was_char:
 			os.write(self.file_, chr(byte))
 		else:
-			char = bytes([ byte ])
+			char = python2x3.intlist_to_binary([ byte ])
 			os.write(self.file_, char)
 
 	def clear(self, bitno):
@@ -204,7 +204,7 @@ class File_seek_backend:
 		if was_char:
 			os.write(chr(byte))
 		else:
-			char = bytes([ byte ])
+			char = python2x3.intlist_to_binary([ byte ])
 			os.write(char)
 
 	# These are quite slow ways to do iand and ior, but they should work, and a faster version is going to take more time
