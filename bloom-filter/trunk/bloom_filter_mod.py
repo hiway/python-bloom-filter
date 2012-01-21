@@ -67,6 +67,7 @@ def my_range(num_values):
 
 
 if HAVE_MMAP:
+
 	class Mmap_backend:
 		'''
 		Backend storage for our "array of bits" using an mmap'd file.
