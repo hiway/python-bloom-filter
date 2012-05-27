@@ -8,7 +8,10 @@ performance-graph.pdf: performance-numbers.db gen-performance-graph
 .PRECIOUS: performance-numbers.db
 
 performance-numbers.db: test-bloom-filter
-	./this-pylint bloom_filter_mod.py test-bloom-filter
+	./this-pylint \
+		--ignore-message ".*Unable to import 'dbm'" \
+		--ignore-message ".*Unable to import 'anydbm'" \
+		--to-pylint bloom_filter_mod.py test-bloom-filter
 	rm -f seek.txt array.txt hybrid.txt mmap.txt
 	#/usr/local/pypy-1.7/bin/pypy ./test-bloom-filter --performance-test
 	/usr/bin/python ./test-bloom-filter --performance-test
