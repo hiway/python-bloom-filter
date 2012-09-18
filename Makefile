@@ -1,6 +1,6 @@
 
 go: performance-graph.pdf
-	xpdf performance-graph.pdf
+	evince performance-graph.pdf
 
 performance-graph.pdf: performance-numbers.db gen-performance-graph
 	./gen-performance-graph
@@ -13,9 +13,9 @@ performance-numbers.db: test-bloom-filter
 		--ignore-message ".*Unable to import 'anydbm'" \
 		--to-pylint bloom_filter_mod.py test-bloom-filter
 	rm -f seek.txt array.txt hybrid.txt mmap.txt
+	#/usr/local/pypy-1.9/bin/pypy ./test-bloom-filter --performance-test
 	#/usr/local/pypy-1.7/bin/pypy ./test-bloom-filter --performance-test
-	/usr/bin/python ./test-bloom-filter --performance-test
-	#/usr/local/cpython-3.2/bin/python ./test-bloom-filter
+	/usr/local/cpython-3.2/bin/python ./test-bloom-filter
 	#/usr/local/cpython-2.5/bin/python ./test-bloom-filter
 	#/usr/local/cpython-2.7/bin/python ./test-bloom-filter
 	#/usr/local/cpython-3.0/bin/python ./test-bloom-filter
@@ -31,6 +31,7 @@ clean:
 
 veryclean: clean
 	rm -f performance-numbers.db
+	rm -f performance-numbers
 	
 register:
 	# Once
