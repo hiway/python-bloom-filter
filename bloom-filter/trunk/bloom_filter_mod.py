@@ -245,7 +245,7 @@ class Array_then_file_seek_backend:
     On open, we read from the file to RAM.  On close, we write from RAM to the file.
     '''
 
-    effs = 2 ^ 8 - 1
+    effs = 2 ** 8 - 1
 
     def __init__(self, num_bits, filename, max_bytes_in_memory):
         self.num_bits = num_bits
@@ -374,7 +374,8 @@ class Array_then_file_seek_backend:
 class Array_backend:
     '''Backend storage for our "array of bits" using a python array of integers'''
 
-    effs = 2 ^ 32 - 1
+    # Note that this has now been split out into a bits_mod for the benefit of other projects.
+    effs = 2 ** 32 - 1
 
     def __init__(self, num_bits):
         self.num_bits = num_bits
