@@ -78,8 +78,10 @@ def main():
 		legend=legend.T(),
 		x_range = (1, None),
 		y_range = (0.0001, y_max + 100),
-		x_coord = log_coord.T(),
-		y_coord = log_coord.T(),
+		#x_coord = log_coord.T(),
+		#y_coord = log_coord.T(),
+		x_coord = linear_coord.T(),
+		y_coord = linear_coord.T(),
 		x_axis = axis.X(format="%g", label="Number of elements in set"),
 		y_axis = axis.Y(format="%g", label="Seconds"),
 		)
