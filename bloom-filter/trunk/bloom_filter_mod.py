@@ -503,7 +503,7 @@ class Bloom_filter:
         if ideal_num_elements_n <= 0:
             raise ValueError('ideal_num_elements_n must be > 0')
         if not (0 < error_rate_p < 1):
-            raise ValueError('error_rate_p must be between 0 and 1 inclusive')
+            raise ValueError('error_rate_p must be between 0 and 1 exclusive')
 
         self.error_rate_p = error_rate_p
         # With fewer elements, we should do very well.  With more elements, our error rate "guarantee"
