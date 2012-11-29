@@ -184,7 +184,7 @@ class File_seek_backend:
         if was_char:
             os.write(self.file_, chr(byte))
         else:
-            char = python2x3.intlist_to_binary([ byte ])
+            char = python2x3.intlist_to_binary([byte])
             os.write(self.file_, char)
 
     def clear(self, bitno):
@@ -205,7 +205,7 @@ class File_seek_backend:
         if was_char:
             os.write(chr(byte))
         else:
-            char = python2x3.intlist_to_binary([ byte ])
+            char = python2x3.intlist_to_binary([byte])
             os.write(char)
 
     # These are quite slow ways to do iand and ior, but they should work, and a faster version is going to take more time
@@ -433,8 +433,8 @@ def get_bitno_seed_rnd(bloom_filter, key):
         yield bitno % bloom_filter.num_bits_m
 
 
-MERSENNES1 = [ 2 ** x - 1 for x in [ 17, 31, 127 ] ]
-MERSENNES2 = [ 2 ** x - 1 for x in [ 19, 67, 257 ] ]
+MERSENNES1 = [2 ** x - 1 for x in [17, 31, 127]]
+MERSENNES2 = [2 ** x - 1 for x in [19, 67, 257]]
 
 
 def simple_hash(int_list, prime1, prime2, prime3):
@@ -471,7 +471,7 @@ def get_bitno_lin_comb(bloom_filter, key):
     elif hasattr(key[0], '__divmod__'):
         int_list = key
     elif isinstance(key[0], str):
-        int_list = [ ord(char) for char in key ]
+        int_list = [ord(char) for char in key]
     else:
         raise TypeError('Sorry, I do not know how to hash this type')
 
@@ -553,7 +553,7 @@ class Bloom_filter:
             self.ideal_num_elements_n,
             self.error_rate_p,
             self.num_bits_m,
-            )
+        )
 
     def add(self, key):
         '''Add an element to the filter'''
@@ -566,9 +566,9 @@ class Bloom_filter:
 
     def _match_template(self, bloom_filter):
         '''Compare a sort of signature for two bloom filters.  Used in preparation for binary operations'''
-        return (self.num_bits_m == bloom_filter.num_bits_m \
-            and self.num_probes_k == bloom_filter.num_probes_k \
-            and self.probe_bitnoer == bloom_filter.probe_bitnoer)
+        return (self.num_bits_m == bloom_filter.num_bits_m
+                and self.num_probes_k == bloom_filter.num_probes_k
+                and self.probe_bitnoer == bloom_filter.probe_bitnoer)
 
     def union(self, bloom_filter):
         '''Compute the set union of two bloom filters'''
