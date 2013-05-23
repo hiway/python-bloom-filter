@@ -9,7 +9,7 @@ This bloom filter implementation:
 5) Passes pylint and pep8.
 6) Supports adding elements, testing for membership, and'ing sets and or'ing sets.
 
-The code is derived from http://code.activestate.com/recipes/577686-bloom-filter/ and inherits that code's license.
+The code is derived from http://code.activestate.com/recipes/577686-bloom-filter/ and inherits that code's license (MIT).
 
 For more about Bloom Filters:
 http://en.wikipedia.org/wiki/Bloom_filter
