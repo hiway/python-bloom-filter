@@ -112,7 +112,7 @@ class States:
 
     @staticmethod
     def within(value):
-        '''Is the vaoue in our list of states?'''
+        '''Is the value in our list of states?'''
         return value in States.states
 
     @staticmethod
@@ -241,7 +241,7 @@ def or_test():
         sys.stderr.write('d not in abc_and_bcd, but should be')
         all_good = False
     if 'e' in abc_and_bcd:
-        sys.stderr.write('e in abc_and_bcd, but should be')
+        sys.stderr.write('e in abc_and_bcd, but should not be')
         all_good = False
 
     return all_good
@@ -289,7 +289,7 @@ def main():
                 description = give_description(filename)
                 key = '%s %s' % (description, elements)
                 database = anydbm.open('performance-numbers', 'c')
-                if key in database:
+                if key in database.keys():
                     database.close()
                     continue
                 if elements >= 100000000 and description == 'seek':
