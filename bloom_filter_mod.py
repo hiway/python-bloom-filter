@@ -68,7 +68,7 @@ def my_range(num_values):
 
 if HAVE_MMAP:
 
-    class Mmap_backend:
+    class Mmap_backend(object):
         '''
         Backend storage for our "array of bits" using an mmap'd file.
         Please note that this has only been tested on Linux so far: 2    -11-01.
@@ -139,7 +139,7 @@ if HAVE_MMAP:
             os.close(self.file_)
 
 
-class File_seek_backend:
+class File_seek_backend(object):
     '''Backend storage for our "array of bits" using a file in which we seek'''
 
     effs = 2 ^ 8 - 1
@@ -236,13 +236,14 @@ class File_seek_backend:
         os.close(self.file_)
 
 
-class Array_then_file_seek_backend:
+class Array_then_file_seek_backend(object):
     # pylint: disable=R0902
     # R0902: We kinda need a bunch of instance attributes
     '''
-    Backend storage for our "array of bits" using a python array of integers up to some maximum number of bytes, then spilling over to a file.
-    This is -not- a cache; we instead save the leftmost bits in RAM, and the rightmost bits (if necessary) in a file.
-    On open, we read from the file to RAM.  On close, we write from RAM to the file.
+    Backend storage for our "array of bits" using a python array of integers up to some maximum number of bytes,
+    then spilling over to a file.  This is -not- a cache; we instead save the leftmost bits in RAM, and the
+    rightmost bits (if necessary) in a file.  On open, we read from the file to RAM.  On close, we write from RAM
+    to the file.
     '''
 
     effs = 2 ** 8 - 1
@@ -371,7 +372,7 @@ class Array_then_file_seek_backend:
         os.close(self.file_)
 
 
-class Array_backend:
+class Array_backend(object):
     '''Backend storage for our "array of bits" using a python array of integers'''
 
     # Note that this has now been split out into a bits_mod for the benefit of other projects.
@@ -493,7 +494,7 @@ def try_unlink(filename):
     return
 
 
-class Bloom_filter:
+class Bloom_filter(object):
     '''Probabilistic set membership testing for large sets'''
 
     #def __init__(self, ideal_num_elements_n, error_rate_p, probe_offsetter=get_index_bitmask_seed_rnd):
