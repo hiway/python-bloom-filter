@@ -37,14 +37,14 @@ def test(description, values, trials, error_rate, probe_bitnoer=bloom_filter_mod
     divisor = 100000
 
     bloom_filter = bloom_filter_mod.Bloom_filter(
-        ideal_num_elements_n=trials * 2, 
-        error_rate_p=error_rate, 
-        probe_bitnoer=probe_bitnoer, 
+        ideal_num_elements_n=trials * 2,
+        error_rate_p=error_rate,
+        probe_bitnoer=probe_bitnoer,
         filename=filename,
         start_fresh=True,
         )
 
-    sys.stdout.write('\ndescription: %s num_bits_m: %s num_probes_k: %s\n' % 
+    sys.stdout.write('\ndescription: %s num_bits_m: %s num_probes_k: %s\n' %
         (description, bloom_filter.num_bits_m, bloom_filter.num_probes_k))
 
     print('starting to add values to an empty bloom filter')
@@ -90,7 +90,7 @@ def test(description, values, trials, error_rate, probe_bitnoer=bloom_filter_mod
 
     return all_good
 
-class States:
+class States(object):
     '''Generate the USA's state names'''
 
     def __init__(self):
@@ -129,7 +129,7 @@ def random_string():
         list_.append(character)
     return ''.join(list_)
 
-class Random_content:
+class Random_content(object):
     '''Generated a bunch of random strings in sorted order'''
 
     random_content = [ random_string() for dummy in range(1000) ]
@@ -153,7 +153,7 @@ class Random_content:
         '''How many members?'''
         return len(Random_content.random_content)
 
-class Evens:
+class Evens(object):
     '''Generate a bunch of even numbers'''
 
     def __init__(self, maximum):
@@ -282,8 +282,8 @@ def main():
 
     if performance_test:
         sqrt_of_10 = math.sqrt(10)
-        for exponent in range(5): # this is a lot, but probably not unreasonable
-        #for exponent in range(19): # this is a lot, but probably not unreasonable
+        #for exponent in range(5): # this is a lot, but probably not unreasonable
+        for exponent in range(19): # this is a lot, but probably not unreasonable
             elements = int(sqrt_of_10 ** exponent + 0.5)
             for filename in [ None, 'bloom-filter-rm-me', ('bloom-filter-rm-me', 768 * 2**20), ('bloom-filter-rm-me', -1) ]:
                 description = give_description(filename)
@@ -301,9 +301,9 @@ def main():
                 time0 = time.time()
                 all_good &= test(
                     'evens %s elements: %d' % (give_description(filename), elements),
-                    Evens(elements), 
-                    trials=elements, 
-                    error_rate=1e-2, 
+                    Evens(elements),
+                    trials=elements,
+                    error_rate=1e-2,
                     filename=filename,
                     )
                 time1 = time.time()
