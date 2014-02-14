@@ -1,4 +1,7 @@
 
+# pylint: disable=superfluous-parens
+# superfluous-parens: Sometimes extra parens are more clear
+
 '''Bloom Filter: Probabilistic set membership testing for large sets'''
 
 # Shamelessly borrowed (under MIT license) from http://code.activestate.com/recipes/577686-bloom-filter/
