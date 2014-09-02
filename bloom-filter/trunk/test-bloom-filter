@@ -1,5 +1,8 @@
 #!/usr/bin/python
 
+# pylint: disable=superfluous-parens
+# superfluous-parens: Parentheses are good for clarity and portability
+
 '''Unit tests for bloom_filter_mod'''
 
 #mport os
@@ -44,8 +47,14 @@ def test(description, values, trials, error_rate, probe_bitnoer=bloom_filter_mod
         start_fresh=True,
         )
 
-    sys.stdout.write('\ndescription: %s num_bits_m: %s num_probes_k: %s\n' %
-        (description, bloom_filter.num_bits_m, bloom_filter.num_probes_k))
+    message = '\ndescription: %s num_bits_m: %s num_probes_k: %s\n'
+    filled_out_message = message % (
+        description,
+        bloom_filter.num_bits_m,
+        bloom_filter.num_probes_k,
+    )
+
+    sys.stdout.write(filled_out_message)
 
     print('starting to add values to an empty bloom filter')
     for valueno, value in enumerate(values.generator()):
@@ -132,7 +141,7 @@ def random_string():
 class Random_content(object):
     '''Generated a bunch of random strings in sorted order'''
 
-    random_content = [ random_string() for dummy in range(1000) ]
+    random_content = [random_string() for dummy in range(1000)]
 
     def __init__(self):
         pass
@@ -187,11 +196,11 @@ def and_test():
     all_good = True
 
     abc = bloom_filter_mod.Bloom_filter(ideal_num_elements_n=100, error_rate_p=0.01)
-    for character in [ 'a', 'b', 'c' ]:
+    for character in ['a', 'b', 'c']:
         abc += character
 
     bcd = bloom_filter_mod.Bloom_filter(ideal_num_elements_n=100, error_rate_p=0.01)
-    for character in [ 'b', 'c', 'd' ]:
+    for character in ['b', 'c', 'd']:
         bcd += character
 
     abc_and_bcd = abc
@@ -218,11 +227,11 @@ def or_test():
     all_good = True
 
     abc = bloom_filter_mod.Bloom_filter(ideal_num_elements_n=100, error_rate_p=0.01)
-    for character in [ 'a', 'b', 'c' ]:
+    for character in ['a', 'b', 'c']:
         abc += character
 
     bcd = bloom_filter_mod.Bloom_filter(ideal_num_elements_n=100, error_rate_p=0.01)
-    for character in [ 'b', 'c', 'd' ]:
+    for character in ['b', 'c', 'd']:
         bcd += character
 
     abc_and_bcd = abc
@@ -261,7 +270,7 @@ def give_description(filename):
 def main():
     '''Unit tests for Bloom_filter class'''
 
-    if sys.argv[1:] == [ '--performance-test' ]:
+    if sys.argv[1:] == ['--performance-test']:
         performance_test = True
     else:
         performance_test = False
@@ -285,7 +294,7 @@ def main():
         #for exponent in range(5): # this is a lot, but probably not unreasonable
         for exponent in range(19): # this is a lot, but probably not unreasonable
             elements = int(sqrt_of_10 ** exponent + 0.5)
-            for filename in [ None, 'bloom-filter-rm-me', ('bloom-filter-rm-me', 768 * 2**20), ('bloom-filter-rm-me', -1) ]:
+            for filename in [None, 'bloom-filter-rm-me', ('bloom-filter-rm-me', 768 * 2**20), ('bloom-filter-rm-me', -1)]:
                 description = give_description(filename)
                 key = '%s %s' % (description, elements)
                 database = anydbm.open('performance-numbers', 'c')
