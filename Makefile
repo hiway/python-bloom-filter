@@ -5,8 +5,6 @@ go: performance-graph.pdf
 performance-graph.pdf: performance-numbers.db gen-performance-graph
 	./gen-performance-graph
 
-.PRECIOUS: performance-numbers.db
-
 performance-numbers.db: test-bloom-filter
 	./this-pylint \
 		--ignore-message ".*Unable to import 'dbm'" \
