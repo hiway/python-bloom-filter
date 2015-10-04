@@ -9,8 +9,9 @@
 
 # Tweaked by Daniel Richard Stromberg, mostly to:
 # 1) Give it a little nicer __init__ parameters.
-# 2) Improve the hash functions to get a much lower rate of false positives
-# 3) Make it pass pylint
+# 2) Improve the hash functions to get a much lower rate of false positives.
+# 3) Give it a selection of backends.
+# 4) Make it pass pylint.
 
 import os
 #mport sys
