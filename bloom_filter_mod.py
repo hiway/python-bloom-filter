@@ -1,5 +1,5 @@
 
-# pylint: disable=superfluous-parens
+# pylint: disable=superfluous-parens,redefined-variable-type
 # superfluous-parens: Sometimes extra parens are more clear
 
 '''Bloom Filter: Probabilistic set membership testing for large sets'''
