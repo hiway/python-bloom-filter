@@ -18,10 +18,6 @@ import os
 import math
 import array
 import random
-#mport bufsock
-#mport hashlib
-#mport numbers
-import python2x3
 
 try:
     import mmap as mmap_mod
@@ -30,6 +26,12 @@ except ImportError:
     HAVE_MMAP = False
 else:
     HAVE_MMAP = True
+
+#mport bufsock
+#mport hashlib
+#mport numbers
+
+import python2x3
 
 # In the literature:
 # k is the number of probes - we call this num_probes_k
