@@ -603,4 +603,3 @@ class Bloom_filter(object):
         return True
 
         #return all(self.array_[i] & mask for i, mask in self.probe_bitnoer(self, key))
-
