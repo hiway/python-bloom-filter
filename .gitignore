@@ -152,3 +152,4 @@ ENV/
 # Rope project settings
 .ropeproject
 
+bloom-filter-rm-me
