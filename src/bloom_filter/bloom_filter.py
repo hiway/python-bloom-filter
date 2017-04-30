@@ -500,7 +500,7 @@ def try_unlink(filename):
     return
 
 
-class Bloom_filter(object):
+class BloomFilter(object):
     '''Probabilistic set membership testing for large sets'''
 
     #def __init__(self, ideal_num_elements_n, error_rate_p, probe_offsetter=get_index_bitmask_seed_rnd):
@@ -556,7 +556,7 @@ class Bloom_filter(object):
         self.probe_bitnoer = probe_bitnoer
 
     def __repr__(self):
-        return 'Bloom_filter(ideal_num_elements_n=%d, error_rate_p=%f, num_bits_m=%d)' % (
+        return 'BloomFilter(ideal_num_elements_n=%d, error_rate_p=%f, num_bits_m=%d)' % (
             self.ideal_num_elements_n,
             self.error_rate_p,
             self.num_bits_m,
@@ -603,3 +603,4 @@ class Bloom_filter(object):
         return True
 
         #return all(self.array_[i] & mask for i, mask in self.probe_bitnoer(self, key))
+
