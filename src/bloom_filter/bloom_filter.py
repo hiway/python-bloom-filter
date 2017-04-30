@@ -2,7 +2,7 @@
 # pylint: disable=superfluous-parens,redefined-variable-type
 # superfluous-parens: Sometimes extra parens are more clear
 
-'''Bloom Filter: Probabilistic set membership testing for large sets'''
+"""Bloom Filter: Probabilistic set membership testing for large sets"""
 
 # Shamelessly borrowed (under MIT license) from http://code.activestate.com/recipes/577686-bloom-filter/
 # About Bloom Filters: http://en.wikipedia.org/wiki/Bloom_filter
@@ -41,7 +41,7 @@ import python2x3
 
 
 def my_range(num_values):
-    '''Generate numbers from 0..num_values-1'''
+    """Generate numbers from 0..num_values-1"""
 
     value = 0
     while value < num_values:
@@ -50,7 +50,7 @@ def my_range(num_values):
 
 # In the abstract, this is what we want &= and |= to do, but especially for disk-based filters, this is extremely slow
 #class Backend_set_operations:
-#    '''Provide &= and |= for backends'''
+#    """Provide &= and |= for backends"""
 #    # pylint: disable=W0232
 #    # W0232: We don't need an __init__ method; we're never instantiated directly
 #    def __iand__(self, other):
@@ -75,10 +75,10 @@ def my_range(num_values):
 if HAVE_MMAP:
 
     class Mmap_backend(object):
-        '''
+        """
         Backend storage for our "array of bits" using an mmap'd file.
         Please note that this has only been tested on Linux so far: 2    -11-01.
-        '''
+        """
 
         effs = 2 ^ 8 - 1
 
@@ -94,7 +94,7 @@ if HAVE_MMAP:
             self.mmap = mmap_mod.mmap(self.file_, self.num_chars)
 
         def is_set(self, bitno):
-            '''Return true iff bit number bitno is set'''
+            """Return true iff bit number bitno is set"""
             byteno, bit_within_wordno = divmod(bitno, 8)
             mask = 1 << bit_within_wordno
             char = self.mmap[byteno]
@@ -105,7 +105,7 @@ if HAVE_MMAP:
             return byte & mask
 
         def set(self, bitno):
-            '''set bit number bitno to true'''
+            """set bit number bitno to true"""
 
             byteno, bit_within_byteno = divmod(bitno, 8)
             mask = 1 << bit_within_byteno
@@ -115,7 +115,7 @@ if HAVE_MMAP:
             self.mmap[byteno] = chr(byte)
 
         def clear(self, bitno):
-            '''clear bit number bitno - set it to false'''
+            """clear bit number bitno - set it to false"""
 
             byteno, bit_within_byteno = divmod(bitno, 8)
             mask = 1 << bit_within_byteno
@@ -141,12 +141,12 @@ if HAVE_MMAP:
             return self
 
         def close(self):
-            '''Close the file'''
+            """Close the file"""
             os.close(self.file_)
 
 
 class File_seek_backend(object):
-    '''Backend storage for our "array of bits" using a file in which we seek'''
+    """Backend storage for our "array of bits" using a file in which we seek"""
 
     effs = 2 ^ 8 - 1
 
@@ -161,7 +161,7 @@ class File_seek_backend(object):
         os.write(self.file_, python2x3.null_byte)
 
     def is_set(self, bitno):
-        '''Return true iff bit number bitno is set'''
+        """Return true iff bit number bitno is set"""
         byteno, bit_within_wordno = divmod(bitno, 8)
         mask = 1 << bit_within_wordno
         os.lseek(self.file_, byteno, os.SEEK_SET)
@@ -173,7 +173,7 @@ class File_seek_backend(object):
         return byte & mask
 
     def set(self, bitno):
-        '''set bit number bitno to true'''
+        """set bit number bitno to true"""
 
         byteno, bit_within_byteno = divmod(bitno, 8)
         mask = 1 << bit_within_byteno
@@ -194,7 +194,7 @@ class File_seek_backend(object):
             os.write(self.file_, char)
 
     def clear(self, bitno):
-        '''clear bit number bitno - set it to false'''
+        """clear bit number bitno - set it to false"""
 
         byteno, bit_within_byteno = divmod(bitno, 8)
         mask = 1 << bit_within_byteno
@@ -238,19 +238,19 @@ class File_seek_backend(object):
         return self
 
     def close(self):
-        '''Close the file'''
+        """Close the file"""
         os.close(self.file_)
 
 
 class Array_then_file_seek_backend(object):
     # pylint: disable=R0902
     # R0902: We kinda need a bunch of instance attributes
-    '''
+    """
     Backend storage for our "array of bits" using a python array of integers up to some maximum number of bytes,
     then spilling over to a file.  This is -not- a cache; we instead save the leftmost bits in RAM, and the
     rightmost bits (if necessary) in a file.  On open, we read from the file to RAM.  On close, we write from RAM
     to the file.
-    '''
+    """
 
     effs = 2 ** 8 - 1
 
@@ -287,7 +287,7 @@ class Array_then_file_seek_backend(object):
             offset += intended_block_len
 
     def is_set(self, bitno):
-        '''Return true iff bit number bitno is set'''
+        """Return true iff bit number bitno is set"""
         byteno, bit_within_byteno = divmod(bitno, 8)
         mask = 1 << bit_within_byteno
         if byteno < self.bytes_in_memory:
@@ -302,7 +302,7 @@ class Array_then_file_seek_backend(object):
             return byte & mask
 
     def set(self, bitno):
-        '''set bit number bitno to true'''
+        """set bit number bitno to true"""
         byteno, bit_within_byteno = divmod(bitno, 8)
         mask = 1 << bit_within_byteno
         if byteno < self.bytes_in_memory:
@@ -324,7 +324,7 @@ class Array_then_file_seek_backend(object):
                 os.write(self.file_, byte)
 
     def clear(self, bitno):
-        '''clear bit number bitno - set it to false'''
+        """clear bit number bitno - set it to false"""
         byteno, bit_within_byteno = divmod(bitno, 8)
         mask = Array_backend.effs - (1 << bit_within_byteno)
         if byteno < self.bytes_in_memory:
@@ -369,7 +369,7 @@ class Array_then_file_seek_backend(object):
         return self
 
     def close(self):
-        '''Write the in-memory portion to disk, leave the already-on-disk portion unchanged'''
+        """Write the in-memory portion to disk, leave the already-on-disk portion unchanged"""
 
         os.lseek(self.file_, 0, os.SEEK_SET)
         for index in my_range(self.bytes_in_memory):
@@ -379,7 +379,7 @@ class Array_then_file_seek_backend(object):
 
 
 class Array_backend(object):
-    '''Backend storage for our "array of bits" using a python array of integers'''
+    """Backend storage for our "array of bits" using a python array of integers"""
 
     # Note that this has now been split out into a bits_mod for the benefit of other projects.
     effs = 2 ** 32 - 1
@@ -390,19 +390,19 @@ class Array_backend(object):
         self.array_ = array.array('L', [0]) * self.num_words
 
     def is_set(self, bitno):
-        '''Return true iff bit number bitno is set'''
+        """Return true iff bit number bitno is set"""
         wordno, bit_within_wordno = divmod(bitno, 32)
         mask = 1 << bit_within_wordno
         return self.array_[wordno] & mask
 
     def set(self, bitno):
-        '''set bit number bitno to true'''
+        """set bit number bitno to true"""
         wordno, bit_within_wordno = divmod(bitno, 32)
         mask = 1 << bit_within_wordno
         self.array_[wordno] |= mask
 
     def clear(self, bitno):
-        '''clear bit number bitno - set it to false'''
+        """clear bit number bitno - set it to false"""
         wordno, bit_within_wordno = divmod(bitno, 32)
         mask = Array_backend.effs - (1 << bit_within_wordno)
         self.array_[wordno] &= mask
@@ -426,12 +426,12 @@ class Array_backend(object):
         return self
 
     def close(self):
-        '''Noop for compatibility with the file+seek backend'''
+        """Noop for compatibility with the file+seek backend"""
         pass
 
 
 def get_bitno_seed_rnd(bloom_filter, key):
-    '''Apply num_probes_k hash functions to key.  Generate the array index and bitmask corresponding to each result'''
+    """Apply num_probes_k hash functions to key.  Generate the array index and bitmask corresponding to each result"""
 
     # We're using key as a seed to a pseudorandom number generator
     hasher = random.Random(key).randrange
@@ -445,7 +445,7 @@ MERSENNES2 = [2 ** x - 1 for x in [19, 67, 257]]
 
 
 def simple_hash(int_list, prime1, prime2, prime3):
-    '''Compute a hash value from a list of integers and 3 primes'''
+    """Compute a hash value from a list of integers and 3 primes"""
     result = 0
     for integer in int_list:
         result += ((result + integer + prime1) * prime2) % prime3
@@ -453,17 +453,17 @@ def simple_hash(int_list, prime1, prime2, prime3):
 
 
 def hash1(int_list):
-    '''Basic hash function #1'''
+    """Basic hash function #1"""
     return simple_hash(int_list, MERSENNES1[0], MERSENNES1[1], MERSENNES1[2])
 
 
 def hash2(int_list):
-    '''Basic hash function #2'''
+    """Basic hash function #2"""
     return simple_hash(int_list, MERSENNES2[0], MERSENNES2[1], MERSENNES2[2])
 
 
 def get_bitno_lin_comb(bloom_filter, key):
-    '''Apply num_probes_k hash functions to key.  Generate the array index and bitmask corresponding to each result'''
+    """Apply num_probes_k hash functions to key.  Generate the array index and bitmask corresponding to each result"""
 
     # This one assumes key is either bytes or str (or other list of integers)
 
@@ -492,7 +492,7 @@ def get_bitno_lin_comb(bloom_filter, key):
 
 
 def try_unlink(filename):
-    '''unlink a file.  Don't complain if it's not there'''
+    """unlink a file.  Don't complain if it's not there"""
     try:
         os.unlink(filename)
     except OSError:
@@ -501,7 +501,7 @@ def try_unlink(filename):
 
 
 class BloomFilter(object):
-    '''Probabilistic set membership testing for large sets'''
+    """Probabilistic set membership testing for large sets"""
 
     #def __init__(self, ideal_num_elements_n, error_rate_p, probe_offsetter=get_index_bitmask_seed_rnd):
     def __init__(self, ideal_num_elements_n, error_rate_p, probe_bitnoer=get_bitno_lin_comb, filename=None, start_fresh=False):
@@ -563,7 +563,7 @@ class BloomFilter(object):
         )
 
     def add(self, key):
-        '''Add an element to the filter'''
+        """Add an element to the filter"""
         for bitno in self.probe_bitnoer(self, key):
             self.backend.set(bitno)
 
@@ -572,13 +572,13 @@ class BloomFilter(object):
         return self
 
     def _match_template(self, bloom_filter):
-        '''Compare a sort of signature for two bloom filters.  Used in preparation for binary operations'''
+        """Compare a sort of signature for two bloom filters.  Used in preparation for binary operations"""
         return (self.num_bits_m == bloom_filter.num_bits_m
                 and self.num_probes_k == bloom_filter.num_probes_k
                 and self.probe_bitnoer == bloom_filter.probe_bitnoer)
 
     def union(self, bloom_filter):
-        '''Compute the set union of two bloom filters'''
+        """Compute the set union of two bloom filters"""
         self.backend |= bloom_filter.backend
 
     def __ior__(self, bloom_filter):
@@ -586,7 +586,7 @@ class BloomFilter(object):
         return self
 
     def intersection(self, bloom_filter):
-        '''Compute the set intersection of two bloom filters'''
+        """Compute the set intersection of two bloom filters"""
         self.backend &= bloom_filter.backend
 
     def __iand__(self, bloom_filter):
