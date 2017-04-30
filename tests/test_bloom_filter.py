@@ -18,7 +18,7 @@ except ImportError:
 
 import random
 
-import drs_bloom_filter
+import bloom_filter
 
 CHARACTERS = 'abcdefghijklmnopqrstuvwxyz1234567890'
 
@@ -33,17 +33,19 @@ def my_range(maximum):
         value += 1
 
 
-def _test(description, values, trials, error_rate, probe_bitnoer=drs_bloom_filter.get_bitno_lin_comb, filename=None):
+def _test(description, values, trials, error_rate, probe_bitnoer=None, filename=None):
     # pylint: disable=R0913,R0914
     # R0913: We want a few arguments
     # R0914: We want some local variables too.  This is just test code.
     """Some quick automatic tests for the bloom filter class"""
+    if not probe_bitnoer:
+        probe_bitnoer = bloom_filter.get_bitno_lin_comb
 
     all_good = True
 
     divisor = 100000
 
-    bloom_filter = drs_bloom_filter.Bloom_filter(
+    bloom = bloom_filter.Bloom_filter(
         ideal_num_elements_n=trials * 2,
         error_rate_p=error_rate,
         probe_bitnoer=probe_bitnoer,
@@ -54,8 +56,8 @@ def _test(description, values, trials, error_rate, probe_bitnoer=drs_bloom_filte
     message = '\ndescription: %s num_bits_m: %s num_probes_k: %s\n'
     filled_out_message = message % (
         description,
-        bloom_filter.num_bits_m,
-        bloom_filter.num_probes_k,
+        bloom.num_bits_m,
+        bloom.num_probes_k,
     )
 
     sys.stdout.write(filled_out_message)
@@ -65,10 +67,10 @@ def _test(description, values, trials, error_rate, probe_bitnoer=drs_bloom_filte
         reverse_valueno = values.length() - valueno
         if reverse_valueno % divisor == 0:
             print('adding valueno %d' % reverse_valueno)
-        bloom_filter.add(value)
+        bloom.add(value)
 
     print('testing all known members')
-    include_in_count = sum(include in bloom_filter for include in values.generator())
+    include_in_count = sum(include in bloom for include in values.generator())
     if include_in_count == values.length():
         # Good
         pass
@@ -86,7 +88,7 @@ def _test(description, values, trials, error_rate, probe_bitnoer=drs_bloom_filte
             # If we accidentally found a member, try again
             if values.within(candidate):
                 continue
-            if candidate in bloom_filter:
+            if candidate in bloom:
                 # print 'We erroneously think %s is in the filter' % candidate
                 false_positives += 1
             break
@@ -204,11 +206,11 @@ def and_test():
 
     all_good = True
 
-    abc = drs_bloom_filter.Bloom_filter(ideal_num_elements_n=100, error_rate_p=0.01)
+    abc = bloom_filter.Bloom_filter(ideal_num_elements_n=100, error_rate_p=0.01)
     for character in ['a', 'b', 'c']:
         abc += character
 
-    bcd = drs_bloom_filter.Bloom_filter(ideal_num_elements_n=100, error_rate_p=0.01)
+    bcd = bloom_filter.Bloom_filter(ideal_num_elements_n=100, error_rate_p=0.01)
     for character in ['b', 'c', 'd']:
         bcd += character
 
@@ -236,11 +238,11 @@ def or_test():
 
     all_good = True
 
-    abc = drs_bloom_filter.Bloom_filter(ideal_num_elements_n=100, error_rate_p=0.01)
+    abc = bloom_filter.Bloom_filter(ideal_num_elements_n=100, error_rate_p=0.01)
     for character in ['a', 'b', 'c']:
         abc += character
 
-    bcd = drs_bloom_filter.Bloom_filter(ideal_num_elements_n=100, error_rate_p=0.01)
+    bcd = bloom_filter.Bloom_filter(ideal_num_elements_n=100, error_rate_p=0.01)
     for character in ['b', 'c', 'd']:
         bcd += character
 
@@ -279,7 +281,7 @@ def give_description(filename):
         return 'seek'
 
 
-def test_drs_bloom_filter():
+def test_bloom_filter():
     """Unit tests for Bloom_filter class"""
 
     if sys.argv[1:] == ['--performance-test']:
@@ -293,7 +295,7 @@ def test_drs_bloom_filter():
 
     all_good &= _test('random', Random_content(), trials=10000, error_rate=0.1)
     all_good &= _test('random', Random_content(), trials=10000, error_rate=0.1,
-                      probe_bitnoer=drs_bloom_filter.get_bitno_seed_rnd)
+                      probe_bitnoer=bloom_filter.get_bitno_seed_rnd)
 
     filename = 'bloom-filter-rm-me'
     all_good &= _test('random', Random_content(), trials=10000, error_rate=0.1, filename=filename)
@@ -338,13 +340,10 @@ def test_drs_bloom_filter():
                 database[key] = '%f' % delta_t
                 database.close()
 
-    if all_good:
-        sys.stderr.write('%s: All tests passed\n' % sys.argv[0])
-        # sys.exit(0)
-    else:
+    if not all_good:
         sys.stderr.write('%s: One or more tests failed\n' % sys.argv[0])
         sys.exit(1)
 
 
 if __name__ == '__main__':
-    test_drs_bloom_filter()
+    test_bloom_filter()

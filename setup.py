@@ -12,7 +12,7 @@ from setuptools import setup
 
 
 setup(
-    name="drs-bloom-filter",
+    name="bloom_filter",
     version="1.01",
     packages=find_packages('src'),
     package_dir={'': 'src'},

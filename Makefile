@@ -25,18 +25,13 @@ clean:
 	rm -f bloom-filter-rm-me
 	rm -f *.ps *.pdf
 	rm -f seek.txt array.txt
-	rm -rf dist build drs_bloom_filter.egg-info
+	rm -rf dist build bloom_filter.egg-info
 	rm -f performance-numbers
 
 veryclean: clean
 	rm -f performance-numbers.db
 	rm -f performance-numbers
-	
-register:
-	# Once
-	python setup.py register
-	
-publish:
-	# Each new version
-	python setup.py sdist upload
+
+build:
+	python setup.py sdist bdist_wheel
 
