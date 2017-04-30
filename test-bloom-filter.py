@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# coding=utf-8
 
 # pylint: disable=superfluous-parens
 # superfluous-parens: Parentheses are good for clarity and portability
@@ -16,7 +17,7 @@ except ImportError:
 
 import random
 
-import bloom_filter_mod
+import drs_bloom_filter
 
 CHARACTERS = 'abcdefghijklmnopqrstuvwxyz1234567890'
 
@@ -29,7 +30,7 @@ def my_range(maximum):
         yield value
         value += 1
 
-def test(description, values, trials, error_rate, probe_bitnoer=bloom_filter_mod.get_bitno_lin_comb, filename=None):
+def test(description, values, trials, error_rate, probe_bitnoer=drs_bloom_filter.get_bitno_lin_comb, filename=None):
     # pylint: disable=R0913,R0914
     # R0913: We want a few arguments
     # R0914: We want some local variables too.  This is just test code.
@@ -39,7 +40,7 @@ def test(description, values, trials, error_rate, probe_bitnoer=bloom_filter_mod
 
     divisor = 100000
 
-    bloom_filter = bloom_filter_mod.Bloom_filter(
+    bloom_filter = drs_bloom_filter.Bloom_filter(
         ideal_num_elements_n=trials * 2,
         error_rate_p=error_rate,
         probe_bitnoer=probe_bitnoer,
@@ -195,11 +196,11 @@ def and_test():
 
     all_good = True
 
-    abc = bloom_filter_mod.Bloom_filter(ideal_num_elements_n=100, error_rate_p=0.01)
+    abc = drs_bloom_filter.Bloom_filter(ideal_num_elements_n=100, error_rate_p=0.01)
     for character in ['a', 'b', 'c']:
         abc += character
 
-    bcd = bloom_filter_mod.Bloom_filter(ideal_num_elements_n=100, error_rate_p=0.01)
+    bcd = drs_bloom_filter.Bloom_filter(ideal_num_elements_n=100, error_rate_p=0.01)
     for character in ['b', 'c', 'd']:
         bcd += character
 
@@ -226,11 +227,11 @@ def or_test():
 
     all_good = True
 
-    abc = bloom_filter_mod.Bloom_filter(ideal_num_elements_n=100, error_rate_p=0.01)
+    abc = drs_bloom_filter.Bloom_filter(ideal_num_elements_n=100, error_rate_p=0.01)
     for character in ['a', 'b', 'c']:
         abc += character
 
-    bcd = bloom_filter_mod.Bloom_filter(ideal_num_elements_n=100, error_rate_p=0.01)
+    bcd = drs_bloom_filter.Bloom_filter(ideal_num_elements_n=100, error_rate_p=0.01)
     for character in ['b', 'c', 'd']:
         bcd += character
 
@@ -280,7 +281,7 @@ def main():
     all_good &= test('states', States(), trials=100000, error_rate=0.01)
 
     all_good &= test('random', Random_content(), trials=10000, error_rate=0.1)
-    all_good &= test('random', Random_content(), trials=10000, error_rate=0.1, probe_bitnoer=bloom_filter_mod.get_bitno_seed_rnd)
+    all_good &= test('random', Random_content(), trials=10000, error_rate=0.1, probe_bitnoer=drs_bloom_filter.get_bitno_seed_rnd)
 
     filename = 'bloom-filter-rm-me'
     all_good &= test('random', Random_content(), trials=10000, error_rate=0.1, filename=filename)

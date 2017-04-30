@@ -4,7 +4,7 @@ setup(
     name = "drs-bloom-filter",
     version = "1.01",
     packages = find_packages(),
-    scripts = ['bloom_filter_mod.py', 'python2x3.py' ],
+    scripts = ['drs_bloom_filter.py', 'python2x3.py' ],
 
     # metadata for upload to PyPI
     author = "Daniel Richard Stromberg",

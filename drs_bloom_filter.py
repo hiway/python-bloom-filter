@@ -1,4 +1,4 @@
-
+# coding=utf-8
 # pylint: disable=superfluous-parens,redefined-variable-type
 # superfluous-parens: Sometimes extra parens are more clear
 
