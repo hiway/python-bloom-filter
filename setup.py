@@ -19,8 +19,8 @@ setup(
     py_modules=[splitext(basename(path))[0] for path in glob('src/*.py')],
 
     # metadata for upload to PyPI
-    author="Daniel Richard Stromberg",
-    author_email="strombrg@gmail.com",
+    author="Harshad Sharma",
+    author_email="harshad@sharma.io",
     description='Pure Python Bloom Filter module',
     long_description="""
 A pure python bloom filter (low storage requirement, probabilistic
@@ -35,7 +35,7 @@ calculates the rest.
 """,
     license="MIT",
     keywords="probabilistic set datastructure",
-    url='http://stromberg.dnsalias.org/~strombrg/drs-bloom-filter/',
+    url='https://github.com/hiway/python-bloom-filter',
     platforms='Cross platform',
     classifiers=[
         "Development Status :: 5 - Production/Stable",
