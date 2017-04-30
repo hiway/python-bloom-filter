@@ -1,16 +1,40 @@
+#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
+from __future__ import absolute_import
+from __future__ import print_function
 
-from setuptools import setup, find_packages
+import io
+import re
+from glob import glob
+from os.path import basename
+from os.path import dirname
+from os.path import join
+from os.path import splitext
+
+from setuptools import find_packages
+from setuptools import setup
+
+
+def read(*names, **kwargs):
+    return io.open(
+        join(dirname(__file__), *names),
+        encoding=kwargs.get('encoding', 'utf8')
+    ).read()
+
+
 setup(
-    name = "drs-bloom-filter",
-    version = "1.01",
-    packages = find_packages(),
-    scripts = ['drs_bloom_filter.py', 'python2x3.py' ],
+    name="drs-bloom-filter",
+    version="1.01",
+    packages=find_packages('src'),
+    package_dir={'': 'src'},
+    py_modules=[splitext(basename(path))[0] for path in glob('src/*.py')],
+    # scripts=['drs_bloom_filter.py', 'python2x3.py'],
 
     # metadata for upload to PyPI
-    author = "Daniel Richard Stromberg",
-    author_email = "strombrg@gmail.com",
+    author="Daniel Richard Stromberg",
+    author_email="strombrg@gmail.com",
     description='Pure Python Bloom Filter module',
-    long_description='''
+    long_description="""
 A pure python bloom filter (low storage requirement, probabilistic
 set datastructure) is provided.  It is known to work on CPython 2.x,
 CPython 3.x, Pypy and Jython.
@@ -20,16 +44,15 @@ Includes mmap, in-memory and disk-seek backends.
 The user specifies the desired maximum number of elements and the
 desired maximum false positive probability, and the module
 calculates the rest.
-''',
-    license = "MIT",
-    keywords = "probabilistic set datastructure",
-	 url='http://stromberg.dnsalias.org/~strombrg/drs-bloom-filter/',
-	 platforms='Cross platform',
-	 classifiers=[
-		 "Development Status :: 5 - Production/Stable",
-		 "Intended Audience :: Developers",
-		 "Programming Language :: Python :: 2",
-		 "Programming Language :: Python :: 3",
-		 ],
+""",
+    license="MIT",
+    keywords="probabilistic set datastructure",
+    url='http://stromberg.dnsalias.org/~strombrg/drs-bloom-filter/',
+    platforms='Cross platform',
+    classifiers=[
+        "Development Status :: 5 - Production/Stable",
+        "Intended Audience :: Developers",
+        "Programming Language :: Python :: 2",
+        "Programming Language :: Python :: 3",
+    ],
 )
-
