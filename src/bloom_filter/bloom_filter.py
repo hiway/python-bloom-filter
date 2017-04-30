@@ -214,7 +214,8 @@ class File_seek_backend(object):
             char = python2x3.intlist_to_binary([byte])
             os.write(char)
 
-    # These are quite slow ways to do iand and ior, but they should work, and a faster version is going to take more time
+    # These are quite slow ways to do iand and ior, but they should work,
+    # and a faster version is going to take more time
     def __iand__(self, other):
         assert self.num_bits == other.num_bits
 
@@ -345,7 +346,8 @@ class Array_then_file_seek_backend(object):
             else:
                 os.write(byte)
 
-    # These are quite slow ways to do iand and ior, but they should work, and a faster version is going to take more time
+    # These are quite slow ways to do iand and ior, but they should work,
+    # and a faster version is going to take more time
     def __iand__(self, other):
         assert self.num_bits == other.num_bits
 
@@ -522,7 +524,6 @@ class BloomFilter(object):
 
         numerator = -1 * self.ideal_num_elements_n * math.log(self.error_rate_p)
         denominator = math.log(2) ** 2
-        #self.num_bits_m = - int((self.ideal_num_elements_n * math.log(self.error_rate_p)) / (math.log(2) ** 2))
         real_num_bits_m = numerator / denominator
         self.num_bits_m = int(math.ceil(real_num_bits_m))
 
@@ -540,22 +541,10 @@ class BloomFilter(object):
                 try_unlink(filename)
             self.backend = File_seek_backend(self.num_bits_m, filename)
 
-        #array.array('L', [0]) * ((self.num_bits_m + 31) // 32)
-
         # AKA num_offsetters
         # Verified against http://en.wikipedia.org/wiki/Bloom_filter#Probability_of_false_positives
         real_num_probes_k = (self.num_bits_m / self.ideal_num_elements_n) * math.log(2)
         self.num_probes_k = int(math.ceil(real_num_probes_k))
-
-# This comes close, but often isn't the same value
-#        alternative_real_num_probes_k = -math.log(self.error_rate_p) / math.log(2)
-#
-#        if abs(real_num_probes_k - alternative_real_num_probes_k) > 1e-6:
-#            sys.stderr.write('real_num_probes_k: %f, alternative_real_num_probes_k: %f\n' %
-#                (real_num_probes_k, alternative_real_num_probes_k)
-#                )
-#            sys.exit(1)
-
         self.probe_bitnoer = probe_bitnoer
 
     def __repr__(self):
@@ -598,12 +587,6 @@ class BloomFilter(object):
 
     def __contains__(self, key):
         for bitno in self.probe_bitnoer(self, key):
-            #wordno, bit_within_word = divmod(bitno, 32)
-            #mask = 1 << bit_within_word
-            #if not (self.array_[wordno] & mask):
             if not self.backend.is_set(bitno):
                 return False
         return True
-
-        #return all(self.array_[i] & mask for i, mask in self.probe_bitnoer(self, key))
-
