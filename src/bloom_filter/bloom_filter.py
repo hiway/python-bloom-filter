@@ -502,20 +502,23 @@ def try_unlink(filename):
 
 class BloomFilter(object):
     """Probabilistic set membership testing for large sets"""
-
-    #def __init__(self, ideal_num_elements_n, error_rate_p, probe_offsetter=get_index_bitmask_seed_rnd):
-    def __init__(self, ideal_num_elements_n, error_rate_p, probe_bitnoer=get_bitno_lin_comb, filename=None, start_fresh=False):
+    def __init__(self,
+                 max_elements=10000,
+                 error_rate=0.1,
+                 probe_bitnoer=get_bitno_lin_comb,
+                 filename=None,
+                 start_fresh=False):
         # pylint: disable=R0913
         # R0913: We want a few arguments
-        if ideal_num_elements_n <= 0:
+        if max_elements <= 0:
             raise ValueError('ideal_num_elements_n must be > 0')
-        if not (0 < error_rate_p < 1):
+        if not (0 < error_rate < 1):
             raise ValueError('error_rate_p must be between 0 and 1 exclusive')
 
-        self.error_rate_p = error_rate_p
+        self.error_rate_p = error_rate
         # With fewer elements, we should do very well.  With more elements, our error rate "guarantee"
         # drops rapidly.
-        self.ideal_num_elements_n = ideal_num_elements_n
+        self.ideal_num_elements_n = max_elements
 
         numerator = -1 * self.ideal_num_elements_n * math.log(self.error_rate_p)
         denominator = math.log(2) ** 2

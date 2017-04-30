@@ -46,8 +46,8 @@ def _test(description, values, trials, error_rate, probe_bitnoer=None, filename=
     divisor = 100000
 
     bloom = bloom_filter.BloomFilter(
-        ideal_num_elements_n=trials * 2,
-        error_rate_p=error_rate,
+        max_elements=trials * 2,
+        error_rate=error_rate,
         probe_bitnoer=probe_bitnoer,
         filename=filename,
         start_fresh=True,
@@ -206,11 +206,11 @@ def and_test():
 
     all_good = True
 
-    abc = bloom_filter.BloomFilter(ideal_num_elements_n=100, error_rate_p=0.01)
+    abc = bloom_filter.BloomFilter(max_elements=100, error_rate=0.01)
     for character in ['a', 'b', 'c']:
         abc += character
 
-    bcd = bloom_filter.BloomFilter(ideal_num_elements_n=100, error_rate_p=0.01)
+    bcd = bloom_filter.BloomFilter(max_elements=100, error_rate=0.01)
     for character in ['b', 'c', 'd']:
         bcd += character
 
@@ -238,11 +238,11 @@ def or_test():
 
     all_good = True
 
-    abc = bloom_filter.BloomFilter(ideal_num_elements_n=100, error_rate_p=0.01)
+    abc = bloom_filter.BloomFilter(max_elements=100, error_rate=0.01)
     for character in ['a', 'b', 'c']:
         abc += character
 
-    bcd = bloom_filter.BloomFilter(ideal_num_elements_n=100, error_rate_p=0.01)
+    bcd = bloom_filter.BloomFilter(max_elements=100, error_rate=0.01)
     for character in ['b', 'c', 'd']:
         bcd += character
 
