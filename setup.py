@@ -13,7 +13,7 @@ from setuptools import setup
 
 setup(
     name="bloom_filter",
-    version="1.10",
+    version="1.3",
     packages=find_packages('src'),
     package_dir={'': 'src'},
     py_modules=[splitext(basename(path))[0] for path in glob('src/*.py')],
