@@ -340,6 +340,9 @@ def test_bloom_filter():
                 database[key] = '%f' % delta_t
                 database.close()
 
+    # test prob count ok
+    bloom = bloom_filter.BloomFilter(1000000, error_rate=.99)
+    all_good &= bloom.num_probes_k == 1
     if not all_good:
         sys.stderr.write('%s: One or more tests failed\n' % sys.argv[0])
         sys.exit(1)
