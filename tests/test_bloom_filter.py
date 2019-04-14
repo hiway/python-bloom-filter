@@ -39,7 +39,7 @@ def _test(description, values, trials, error_rate, probe_bitnoer=None, filename=
     # R0914: We want some local variables too.  This is just test code.
     """Some quick automatic tests for the bloom filter class"""
     if not probe_bitnoer:
-        probe_bitnoer = bloom_filter.get_bitno_lin_comb
+        probe_bitnoer = bloom_filter.get_filter_bitno_probes
 
     all_good = True
 

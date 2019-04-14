@@ -465,7 +465,7 @@ def hash2(int_list):
     return simple_hash(int_list, MERSENNES2[0], MERSENNES2[1], MERSENNES2[2])
 
 
-def get_bitno_lin_comb(bloom_filter, key):
+def get_filter_bitno_probes(bloom_filter, key):
     """Apply num_probes_k hash functions to key.  Generate the array index and bitmask corresponding to each result"""
 
     # This one assumes key is either bytes or str (or other list of integers)
@@ -510,7 +510,7 @@ class BloomFilter(object):
     def __init__(self,
                  max_elements=10000,
                  error_rate=0.1,
-                 probe_bitnoer=get_bitno_lin_comb,
+                 probe_bitnoer=get_filter_bitno_probes,
                  filename=None,
                  start_fresh=False):
         # pylint: disable=R0913
