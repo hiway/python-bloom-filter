@@ -489,11 +489,11 @@ def get_filter_bitno_probes(bloom_filter, key):
     hash_value2 = hash2(int_list)
     probe_value = hash_value1
 
-    # Use exponentiation to generate uncorrelated values for hash probes
     for probeno in range(1, bloom_filter.num_probes_k + 1):
-        probe_value *= probeno * hash_value2
-        probe_value %= bloom_filter.num_bits_m
-        yield probe_value
+        probe_value *= hash_value1
+        probe_value += hash_value2
+        probe_value %= MERSENNES1[2]
+        yield probe_value % bloom_filter.num_bits_m
 
 
 def try_unlink(filename):
