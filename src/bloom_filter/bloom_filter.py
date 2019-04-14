@@ -487,11 +487,13 @@ def get_bitno_lin_comb(bloom_filter, key):
 
     hash_value1 = hash1(int_list)
     hash_value2 = hash2(int_list)
+    probe_value = hash_value1
 
-    # We're using linear combinations of hash_value1 and hash_value2 to obtain num_probes_k hash functions
+    # Use exponentiation to generate uncorrelated values for hash probes
     for probeno in range(1, bloom_filter.num_probes_k + 1):
-        bit_index = hash_value1 + probeno * hash_value2
-        yield bit_index % bloom_filter.num_bits_m
+        probe_value *= probeno * hash_value2
+        probe_value %= bloom_filter.num_bits_m
+        yield probe_value
 
 
 def try_unlink(filename):
