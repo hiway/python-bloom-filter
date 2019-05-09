@@ -19,6 +19,7 @@ import os
 import math
 import array
 import random
+import redis
 
 try:
     import mmap as mmap_mod
@@ -433,6 +434,52 @@ class Array_backend(object):
         pass
 
 
+
+class Redis_backend(object):
+    """Backend storage using redis """
+    # Note that this has now been split out into a bits_mod for the benefit of other projects.
+
+    def __init__(self):
+        # Establish the redis conection
+        self.connection = redis.Redis()
+        # Defining the redis key for storage reference
+        self.rediskey = "MyRedisBloomFilter"
+
+    def is_set(self, bitno):
+        """Return true iff bit number bitno is set"""
+        r = self.connection.pipeline()
+        r.getbit(self.rediskey, bitno)
+        results = r.execute()
+        return all(results)
+
+    def set(self, bitno, transaction=False, set_value=1):
+        # Add the bit number bitno to the redis - set value 1
+        r = self.connection.pipeline(transaction=transaction)
+        r.setbit(self.rediskey, bitno, set_value)
+        r.execute()
+
+    def clear(self, bitno):
+        """clear bit number bitno - set value 0"""
+        self.set(bitno, transaction=True, set_value=0)
+
+    # It'd be nice to do __iand__ and __ior__ in a base class, but that'd be Much slower
+    def __iand__(self, other):
+        r = self.connection.pipeline()
+        r.bitop('AND', 'dest', self.rediskey, other.rediskey)
+        r.execute()
+        return self
+
+    def __ior__(self, other):
+        r = self.connection.pipeline()
+        r.bitop('OR', 'dest', self.rediskey, other.rediskey)
+        r.execute()
+        return self
+
+    def close(self):
+        """Noop for compatibility with the file+seek backend"""
+        pass
+
+
 def get_bitno_seed_rnd(bloom_filter, key):
     """Apply num_probes_k hash functions to key.  Generate the array index and bitmask corresponding to each result"""
 
@@ -510,6 +557,7 @@ class BloomFilter(object):
                  error_rate=0.1,
                  probe_bitnoer=get_bitno_lin_comb,
                  filename=None,
+                 backend=None,
                  start_fresh=False):
         # pylint: disable=R0913
         # R0913: We want a few arguments
@@ -528,8 +576,10 @@ class BloomFilter(object):
         real_num_bits_m = numerator / denominator
         self.num_bits_m = int(math.ceil(real_num_bits_m))
 
-        if filename is None:
+        if backend is None:
             self.backend = Array_backend(self.num_bits_m)
+        elif backend == '$redis':
+            self.backend = Redis_backend()
         elif isinstance(filename, tuple) and isinstance(filename[1], int):
             if start_fresh:
                 try_unlink(filename[0])
@@ -559,6 +609,12 @@ class BloomFilter(object):
         """Add an element to the filter"""
         for bitno in self.probe_bitnoer(self, key):
             self.backend.set(bitno)
+
+    def delete(self, key):
+        """Delete an element from the filter"""
+        for bitno in self.probe_bitnoer(self, key):
+            self.backend.clear(bitno)
+
 
     def __iadd__(self, key):
         self.add(key)
