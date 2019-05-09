@@ -1,14 +1,25 @@
 # Sample test for Redis bloom filter
 
 from bloom_filter import BloomFilter
+from bloom_filter.bloom_filter import Redis_backend
 
-bloom = BloomFilter(max_elements=10000, error_rate=0.1, backend='$redis')
+import rediscluster
+
+NODES = [
+    # Fill in the local nodes
+    {"host": "localhost",  "port": "30001"},
+]
+r = rediscluster.StrictRedisCluster(startup_nodes=NODES)
+
+rbackend = Redis_backend(redis=r)
+
+bloom = BloomFilter(max_elements=10000, error_rate=0.1, backend=rbackend)
 
 bloom.add("test")
 
-print "test" in bloom
+print 'should be true:' + str("test" in bloom)
 
-print "1234" in bloom
+print 'should be false:' + str("1234" in bloom)
 
 bloom.add("1234")
 

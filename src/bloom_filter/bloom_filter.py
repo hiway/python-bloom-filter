@@ -1,7 +1,6 @@
 # coding=utf-8
 # pylint: disable=superfluous-parens,redefined-variable-type
 # superfluous-parens: Sometimes extra parens are more clear
-
 """Bloom Filter: Probabilistic set membership testing for large sets"""
 
 # Shamelessly borrowed (under MIT license) from http://code.activestate.com/recipes/577686-bloom-filter/
@@ -16,10 +15,11 @@
 from __future__ import division
 import os
 #mport sys
+import time
 import math
 import array
 import random
-import redis
+import redis as Redis
 
 try:
     import mmap as mmap_mod
@@ -28,10 +28,6 @@ except ImportError:
     HAVE_MMAP = False
 else:
     HAVE_MMAP = True
-
-#mport bufsock
-#mport hashlib
-#mport numbers
 
 import python2x3
 
@@ -50,8 +46,9 @@ def my_range(num_values):
         yield value
         value += 1
 
+
 # In the abstract, this is what we want &= and |= to do, but especially for disk-based filters, this is extremely slow
-#class Backend_set_operations:
+# class Backend_set_operations:
 #    """Provide &= and |= for backends"""
 #    # pylint: disable=W0232
 #    # W0232: We don't need an __init__ method; we're never instantiated directly
@@ -72,7 +69,6 @@ def my_range(num_values):
 #                self[bitno].set()
 #            else:
 #                self[bitno].clear()
-
 
 if HAVE_MMAP:
 
@@ -130,7 +126,8 @@ if HAVE_MMAP:
             assert self.num_bits == other.num_bits
 
             for byteno in my_range(self.num_chars):
-                self.mmap[byteno] = chr(ord(self.mmap[byteno]) & ord(other.mmap[byteno]))
+                self.mmap[byteno] = chr(
+                    ord(self.mmap[byteno]) & ord(other.mmap[byteno]))
 
             return self
 
@@ -138,7 +135,8 @@ if HAVE_MMAP:
             assert self.num_bits == other.num_bits
 
             for byteno in my_range(self.num_chars):
-                self.mmap[byteno] = chr(ord(self.mmap[byteno]) | ord(other.mmap[byteno]))
+                self.mmap[byteno] = chr(
+                    ord(self.mmap[byteno]) | ord(other.mmap[byteno]))
 
             return self
 
@@ -255,7 +253,7 @@ class Array_then_file_seek_backend(object):
     to the file.
     """
 
-    effs = 2 ** 8 - 1
+    effs = 2**8 - 1
 
     def __init__(self, num_bits, filename, max_bytes_in_memory):
         self.num_bits = num_bits
@@ -277,7 +275,7 @@ class Array_then_file_seek_backend(object):
 
         os.lseek(self.file_, 0, os.SEEK_SET)
         offset = 0
-        intended_block_len = 2 ** 17
+        intended_block_len = 2**17
         while True:
             if offset + intended_block_len < self.bytes_in_memory:
                 block = os.read(self.file_, intended_block_len)
@@ -386,7 +384,7 @@ class Array_backend(object):
     """Backend storage for our "array of bits" using a python array of integers"""
 
     # Note that this has now been split out into a bits_mod for the benefit of other projects.
-    effs = 2 ** 32 - 1
+    effs = 2**32 - 1
 
     def __init__(self, num_bits):
         self.num_bits = num_bits
@@ -434,45 +432,38 @@ class Array_backend(object):
         pass
 
 
-
 class Redis_backend(object):
     """Backend storage using redis """
+
     # Note that this has now been split out into a bits_mod for the benefit of other projects.
 
-    def __init__(self):
+    def __init__(self, redis=None):
         # Establish the redis conection
-        self.connection = redis.Redis()
+        self.connection = redis if redis else Redis.StrictRedis()
         # Defining the redis key for storage reference
-        self.rediskey = "MyRedisBloomFilter"
+        self.rediskey = "RBF-" + str(int(time.time()))
 
     def is_set(self, bitno):
         """Return true iff bit number bitno is set"""
-        r = self.connection.pipeline()
-        r.getbit(self.rediskey, bitno)
-        results = r.execute()
-        return all(results)
+        return self.connection.getbit(self.rediskey, bitno)
 
-    def set(self, bitno, transaction=False, set_value=1):
+    def set(self, bitno, set_value=1):
         # Add the bit number bitno to the redis - set value 1
-        r = self.connection.pipeline(transaction=transaction)
-        r.setbit(self.rediskey, bitno, set_value)
-        r.execute()
+        self.connection.setbit(self.rediskey, bitno, set_value)
 
     def clear(self, bitno):
         """clear bit number bitno - set value 0"""
-        self.set(bitno, transaction=True, set_value=0)
+        self.set(bitno, set_value=0)
 
     # It'd be nice to do __iand__ and __ior__ in a base class, but that'd be Much slower
     def __iand__(self, other):
-        r = self.connection.pipeline()
-        r.bitop('AND', 'dest', self.rediskey, other.rediskey)
-        r.execute()
+        self.connection.bitop('AND', self.rediskey, self.rediskey,
+                              other.rediskey)
         return self
 
     def __ior__(self, other):
-        r = self.connection.pipeline()
-        r.bitop('OR', 'dest', self.rediskey, other.rediskey)
-        r.execute()
+        self.connection.bitop('OR', self.rediskey, self.rediskey,
+                              other.rediskey)
         return self
 
     def close(self):
@@ -490,8 +481,8 @@ def get_bitno_seed_rnd(bloom_filter, key):
         yield bitno % bloom_filter.num_bits_m
 
 
-MERSENNES1 = [2 ** x - 1 for x in [17, 31, 127]]
-MERSENNES2 = [2 ** x - 1 for x in [19, 67, 257]]
+MERSENNES1 = [2**x - 1 for x in [17, 31, 127]]
+MERSENNES2 = [2**x - 1 for x in [19, 67, 257]]
 
 
 def simple_hash(int_list, prime1, prime2, prime3):
@@ -552,6 +543,7 @@ def try_unlink(filename):
 
 class BloomFilter(object):
     """Probabilistic set membership testing for large sets"""
+
     def __init__(self,
                  max_elements=10000,
                  error_rate=0.1,
@@ -571,30 +563,33 @@ class BloomFilter(object):
         # drops rapidly.
         self.ideal_num_elements_n = max_elements
 
-        numerator = -1 * self.ideal_num_elements_n * math.log(self.error_rate_p)
-        denominator = math.log(2) ** 2
+        numerator = -1 * self.ideal_num_elements_n * math.log(
+            self.error_rate_p)
+        denominator = math.log(2)**2
         real_num_bits_m = numerator / denominator
         self.num_bits_m = int(math.ceil(real_num_bits_m))
 
-        if backend is None:
-            self.backend = Array_backend(self.num_bits_m)
-        elif backend == '$redis':
-            self.backend = Redis_backend()
+        if backend:
+            self.backend = backend
         elif isinstance(filename, tuple) and isinstance(filename[1], int):
             if start_fresh:
                 try_unlink(filename[0])
             if filename[1] == -1:
                 self.backend = Mmap_backend(self.num_bits_m, filename[0])
             else:
-                self.backend = Array_then_file_seek_backend(self.num_bits_m, filename[0], filename[1])
-        else:
+                self.backend = Array_then_file_seek_backend(
+                    self.num_bits_m, filename[0], filename[1])
+        elif filename:
             if start_fresh:
                 try_unlink(filename)
             self.backend = File_seek_backend(self.num_bits_m, filename)
+        else:
+            self.backend = Array_backend(self.num_bits_m)
 
         # AKA num_offsetters
         # Verified against http://en.wikipedia.org/wiki/Bloom_filter#Probability_of_false_positives
-        real_num_probes_k = (self.num_bits_m / self.ideal_num_elements_n) * math.log(2)
+        real_num_probes_k = (
+            self.num_bits_m / self.ideal_num_elements_n) * math.log(2)
         self.num_probes_k = int(math.ceil(real_num_probes_k))
         self.probe_bitnoer = probe_bitnoer
 
@@ -614,7 +609,6 @@ class BloomFilter(object):
         """Delete an element from the filter"""
         for bitno in self.probe_bitnoer(self, key):
             self.backend.clear(bitno)
-
 
     def __iadd__(self, key):
         self.add(key)
