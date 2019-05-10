@@ -48,14 +48,14 @@ def _test(description, values, trials, error_rate, probe_bitnoer=None, filename=
     # R0914: We want some local variables too.  This is just test code.
     """Some quick automatic tests for the bloom filter class"""
     if not probe_bitnoer:
-        probe_bitnoer = bloom_filter.get_bitno_lin_comb
+        probe_bitnoer = bloom_filter.get_filter_bitno_probes
 
     all_good = True
 
     divisor = 100000
 
     bloom = bloom_filter.BloomFilter(
-        max_elements=trials * 2,
+        max_elements=values.length() * 2,
         error_rate=error_rate,
         probe_bitnoer=probe_bitnoer,
         redis_connection=redis,
@@ -307,6 +307,7 @@ def test_bloom_filter():
     all_good &= _test('states', States(), trials=100000, error_rate=0.01)
 
     all_good &= _test('random', Random_content(), trials=10000, error_rate=0.1)
+    all_good &= _test('random', Random_content(), trials=1000000, error_rate=1E-9)
     all_good &= _test('random', Random_content(), trials=10000, error_rate=0.1,
                       probe_bitnoer=bloom_filter.get_bitno_seed_rnd)
 

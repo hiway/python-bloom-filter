@@ -526,7 +526,7 @@ def hash2(int_list):
     return simple_hash(int_list, MERSENNES2[0], MERSENNES2[1], MERSENNES2[2])
 
 
-def get_bitno_lin_comb(bloom_filter, key):
+def get_filter_bitno_probes(bloom_filter, key):
     """Apply num_probes_k hash functions to key.  Generate the array index and bitmask corresponding to each result"""
 
     # This one assumes key is either bytes or str (or other list of integers)
@@ -548,11 +548,13 @@ def get_bitno_lin_comb(bloom_filter, key):
 
     hash_value1 = hash1(int_list)
     hash_value2 = hash2(int_list)
+    probe_value = hash_value1
 
-    # We're using linear combinations of hash_value1 and hash_value2 to obtain num_probes_k hash functions
     for probeno in range(1, bloom_filter.num_probes_k + 1):
-        bit_index = hash_value1 + probeno * hash_value2
-        yield bit_index % bloom_filter.num_bits_m
+        probe_value *= hash_value1
+        probe_value += hash_value2
+        probe_value %= MERSENNES1[2]
+        yield probe_value % bloom_filter.num_bits_m
 
 
 def try_unlink(filename):
@@ -570,7 +572,7 @@ class BloomFilter(object):
     def __init__(self,
                  max_elements=10000,
                  error_rate=0.1,
-                 probe_bitnoer=get_bitno_lin_comb,
+                 probe_bitnoer=get_filter_bitno_probes,
                  filename=None,
                  redis_connection=None,
                  redis_key=None,
