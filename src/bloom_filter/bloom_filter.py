@@ -14,7 +14,6 @@
 
 from __future__ import division
 import os
-#mport sys
 import time
 import math
 import array
@@ -437,11 +436,20 @@ class Redis_backend(object):
 
     # Note that this has now been split out into a bits_mod for the benefit of other projects.
 
-    def __init__(self, redis=None):
+    def __init__(self, num_bits, redis_key=None, redis=None, flush=False):
         # Establish the redis conection
+        self.num_bits = num_bits
+        # If a redis object is not passed then create a simple redis object.
+        # Otherwise use what is passed in.  We will pass in a redis object when
+        # acluster redis is used since clusters have complex creation
+        # requiremnts.
         self.connection = redis if redis else Redis.StrictRedis()
         # Defining the redis key for storage reference
-        self.rediskey = "RBF-" + str(int(time.time()))
+        self.rediskey = redis_key if redis_key else "{RBF-}" + "{0}-{1}".format(
+            int(time.time()), random.randint(0, 10000))
+        if flush:
+            self.connection.delete(self.rediskey)
+        self.set(self.num_bits, set_value=0)
 
     def is_set(self, bitno):
         """Return true iff bit number bitno is set"""
@@ -457,13 +465,28 @@ class Redis_backend(object):
 
     # It'd be nice to do __iand__ and __ior__ in a base class, but that'd be Much slower
     def __iand__(self, other):
-        self.connection.bitop('AND', self.rediskey, self.rediskey,
-                              other.rediskey)
+
+        overlap = self.num_bits if other.num_bits > self.num_bits else self.num_bits
+        for i in xrange(0, overlap):
+            if self.is_set(i) & (other.is_set(i) == 0):
+                self.set(i, set_value=0)
+
+        if other.num_bits > overlap:
+            for i in xrange(overlap, other.num_bits):
+                if self.is_set(i) & other.is_set(i) == 0:
+                    self.set(i, set_value=0)
         return self
 
     def __ior__(self, other):
-        self.connection.bitop('OR', self.rediskey, self.rediskey,
-                              other.rediskey)
+        overlap = self.num_bits if other.num_bits > self.num_bits else self.num_bits
+        for i in xrange(0, overlap):
+            if (self.is_set(i) == 0) & other.is_set(i):
+                self.set(i)
+
+        if other.num_bits > overlap:
+            for i in xrange(overlap, other.num_bits):
+                if (self.is_set(i) == 0) & other.is_set(i):
+                    self.set(i)
         return self
 
     def close(self):
@@ -549,7 +572,8 @@ class BloomFilter(object):
                  error_rate=0.1,
                  probe_bitnoer=get_bitno_lin_comb,
                  filename=None,
-                 backend=None,
+                 redis_connection=None,
+                 redis_key=None,
                  start_fresh=False):
         # pylint: disable=R0913
         # R0913: We want a few arguments
@@ -557,6 +581,9 @@ class BloomFilter(object):
             raise ValueError('ideal_num_elements_n must be > 0')
         if not (0 < error_rate < 1):
             raise ValueError('error_rate_p must be between 0 and 1 exclusive')
+
+        if filename and redis_connection:
+            raise ValueError('You can use either File or Redis backend')
 
         self.error_rate_p = error_rate
         # With fewer elements, we should do very well.  With more elements, our error rate "guarantee"
@@ -569,8 +596,12 @@ class BloomFilter(object):
         real_num_bits_m = numerator / denominator
         self.num_bits_m = int(math.ceil(real_num_bits_m))
 
-        if backend:
-            self.backend = backend
+        if redis_connection:
+            self.backend = Redis_backend(
+                self.num_bits_m,
+                redis_key=redis_key,
+                redis=redis_connection,
+                flush=start_fresh)
         elif isinstance(filename, tuple) and isinstance(filename[1], int):
             if start_fresh:
                 try_unlink(filename[0])
