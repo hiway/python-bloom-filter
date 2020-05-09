@@ -7,8 +7,6 @@ from .bloom_filter import (
     get_bitno_seed_rnd,
 )
 
-print("you called?")
-
 __all__ = [
     'BloomFilter',
     'get_bitno_lin_comb',

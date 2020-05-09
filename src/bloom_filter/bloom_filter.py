@@ -171,7 +171,7 @@ class File_seek_backend(object):
             byte = ord(char)
         else:
             byte = char[0]
-        return byte & mask # seems you can hardcode this and it will work TODO fix that in the tests
+        return byte & mask
 
     def set(self, bitno):
         """set bit number bitno to true"""

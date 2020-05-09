@@ -18,8 +18,8 @@ except ImportError:
 
 import random
 
-# import bloom_filter
-import bloom_filter # TODO where the fuck is this calling from (I think its calling my pip)
+# if you are doing tests this imports from your pip, so it might not be the updated version
+import bloom_filter
 
 CHARACTERS = 'abcdefghijklmnopqrstuvwxyz1234567890'
 
