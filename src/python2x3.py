@@ -16,6 +16,7 @@ def python_major():
     # This originally used the platform module, but platform fails on IronPython; sys.version seems to work
     # on everything I've tried
     result = sys.version_info[0]
+    print("python major", result)
     return result
 
 if python_major() == 2:

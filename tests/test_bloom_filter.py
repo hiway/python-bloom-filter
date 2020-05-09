@@ -18,7 +18,8 @@ except ImportError:
 
 import random
 
-import bloom_filter
+# import bloom_filter
+import bloom_filter # TODO where the fuck is this calling from (I think its calling my pip)
 
 CHARACTERS = 'abcdefghijklmnopqrstuvwxyz1234567890'
 
@@ -104,7 +105,6 @@ def _test(description, values, trials, error_rate, probe_bitnoer=None, filename=
         all_good = False
 
     return all_good
-
 
 class States(object):
     """Generate the USA's state names"""
@@ -199,6 +199,42 @@ class Evens(object):
     def length(self):
         """How many members?"""
         return int(math.ceil(self.maximum / 2.0))
+
+def key_test():
+    """ Test that we can do everything with a key too """
+    class Dummy():
+        def __init__(self, biscuit):
+            self.biscuit = biscuit
+        def get(self):
+            return self.biscuit
+    def dummy_key(dummy):
+        return dummy.get()
+
+    dummy_filter = bloom_filter.BloomFilter(key=dummy_key)
+
+    dummies = [Dummy(3), Dummy('a'), Dummy('b')]
+    for dummy in dummies:
+        dummy_filter += dummy
+    for dummy in dummies:
+        if dummy not in dummy_filter:
+            return False # failed to insert
+
+    other_dummy_filter = bloom_filter.BloomFilter(key=dummy_key)
+    other_dummy_filter += Dummy('hello world')
+
+    dummy_filter |= other_dummy_filter
+    for dummy in dummies + [Dummy('hello world')]:
+        if dummy not in dummy_filter:
+            return False
+
+    dummy_filter &= other_dummy_filter
+    for dummy in dummies:
+        if dummy in dummy_filter:
+            return False
+    if Dummy('hello world') not in dummy_filter:
+        return False
+
+    return True
 
 
 def and_test():
@@ -304,6 +340,8 @@ def test_bloom_filter():
 
     all_good &= or_test()
 
+    all_good &= key_test()
+
     if performance_test:
         sqrt_of_10 = math.sqrt(10)
         # for exponent in range(5): # this is a lot, but probably not unreasonable
@@ -346,7 +384,5 @@ def test_bloom_filter():
     if not all_good:
         sys.stderr.write('%s: One or more tests failed\n' % sys.argv[0])
         sys.exit(1)
-
-
 if __name__ == '__main__':
     test_bloom_filter()

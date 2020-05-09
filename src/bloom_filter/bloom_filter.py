@@ -171,7 +171,7 @@ class File_seek_backend(object):
             byte = ord(char)
         else:
             byte = char[0]
-        return byte & mask
+        return byte & mask # seems you can hardcode this and it will work TODO fix that in the tests
 
     def set(self, bitno):
         """set bit number bitno to true"""
@@ -368,7 +368,6 @@ class Array_then_file_seek_backend(object):
                 self.set(bitno)
             else:
                 self.clear(bitno)
-
         return self
 
     def close(self):
@@ -510,7 +509,8 @@ class BloomFilter(object):
                  error_rate=0.1,
                  probe_bitnoer=get_bitno_lin_comb,
                  filename=None,
-                 start_fresh=False):
+                 start_fresh=False,
+                 key=None):
         # pylint: disable=R0913
         # R0913: We want a few arguments
         if max_elements <= 0:
@@ -547,16 +547,20 @@ class BloomFilter(object):
         real_num_probes_k = (self.num_bits_m / self.ideal_num_elements_n) * math.log(2)
         self.num_probes_k = int(math.ceil(real_num_probes_k))
         self.probe_bitnoer = probe_bitnoer
+        self.key = key
 
     def __repr__(self):
-        return 'BloomFilter(ideal_num_elements_n=%d, error_rate_p=%f, num_bits_m=%d)' % (
+        return 'BloomFilter(ideal_num_elements_n=%d, error_rate_p=%f, num_bits_m=%d, key=%s)' % (
             self.ideal_num_elements_n,
             self.error_rate_p,
             self.num_bits_m,
+            str(self.key),
         )
 
     def add(self, key):
         """Add an element to the filter"""
+        if self.key:
+            key = self.key(key)
         for bitno in self.probe_bitnoer(self, key):
             self.backend.set(bitno)
 
@@ -587,6 +591,8 @@ class BloomFilter(object):
         return self
 
     def __contains__(self, key):
+        if self.key:
+            key=self.key(key)
         for bitno in self.probe_bitnoer(self, key):
             if not self.backend.is_set(bitno):
                 return False
