@@ -1,5 +1,7 @@
 > Note: This project has gone unmaintained for a while,
-please use the more up-to-date project at: https://github.com/remram44/python-bloom-filter
+please use the more up-to-date project at: 
+- https://github.com/remram44/python-bloom-filter
+- https://pypi.org/project/bloom-filter2/
 
 # bloom-filter
 
