@@ -1,3 +1,6 @@
+> Note: This project has gone unmaintained for a while,
+please use the more up-to-date project at: https://github.com/remram44/python-bloom-filter
+
 # bloom-filter
 
 This project builds on `drs-bloom-filter` and `bloom_filter_mod`.
