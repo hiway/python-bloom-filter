@@ -40,15 +40,18 @@ Credits and links can be found in AUTHORS.md.
     # instantiate BloomFilter with custom settings,
     # max_elements is how many elements you expect the filter to hold.
     # error_rate defines accuracy; You can use defaults with
+    # key is a mapping from input objects to something the filter can take as input
     # `BloomFilter()` without any arguments. Following example
     # is same as defaults:
     bloom = BloomFilter(max_elements=10000, error_rate=0.1)
 
-    # Test whether the bloom-filter has seen a key:
-    assert "test-key" in bloom is False
+    # Test whether the bloom-filter has seen a object:
+    assert "test-obj" in bloom is False
 
-    # Mark the key as seen
-    bloom.add("test-key")
+    # Mark the object as seen
+    bloom.add("test-obj")
 
     # Now check again
-    assert "test-key" in bloom is True
+    assert "test-obj" in bloom is True
+
+    # If you are using a key make sure it's a one to one mapping
