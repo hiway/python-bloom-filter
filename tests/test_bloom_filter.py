@@ -19,9 +19,18 @@ except ImportError:
 import random
 
 import bloom_filter
+from bloom_filter.bloom_filter import Redis_backend
+import rediscluster
 
 CHARACTERS = 'abcdefghijklmnopqrstuvwxyz1234567890'
 
+
+NODES = [
+    # Fill in the local nodes
+    {"host": "localhost",  "port": "30001"},
+]
+
+redis  = rediscluster.StrictRedisCluster(startup_nodes=NODES)
 
 def my_range(maximum):
     """A range function with consistent semantics on 2.x and 3.x"""
@@ -49,7 +58,7 @@ def _test(description, values, trials, error_rate, probe_bitnoer=None, filename=
         max_elements=values.length() * 2,
         error_rate=error_rate,
         probe_bitnoer=probe_bitnoer,
-        filename=filename,
+        redis_connection=redis,
         start_fresh=True,
     )
 
@@ -206,11 +215,13 @@ def and_test():
 
     all_good = True
 
-    abc = bloom_filter.BloomFilter(max_elements=100, error_rate=0.01)
+    abc = bloom_filter.BloomFilter(max_elements=100, error_rate=0.01,
+            redis_connection=redis)
     for character in ['a', 'b', 'c']:
         abc += character
 
-    bcd = bloom_filter.BloomFilter(max_elements=100, error_rate=0.01)
+    bcd = bloom_filter.BloomFilter(max_elements=100, error_rate=0.01,
+            redis_connection=redis)
     for character in ['b', 'c', 'd']:
         bcd += character
 
@@ -218,10 +229,10 @@ def and_test():
     abc_and_bcd &= bcd
 
     if 'a' in abc_and_bcd:
-        sys.stderr.write('a in abc_and_bcd, but should not be')
+        sys.stderr.write('a in abc_and_bcd, but should not be\n')
         all_good = False
     if not 'b' in abc_and_bcd:
-        sys.stderr.write('b not in abc_and_bcd, but should be')
+        sys.stderr.write('b not in abc_and_bcd, but should be\n')
         all_good = False
     if not 'c' in abc_and_bcd:
         sys.stderr.write('c not in abc_and_bcd, but should be')
@@ -238,11 +249,13 @@ def or_test():
 
     all_good = True
 
-    abc = bloom_filter.BloomFilter(max_elements=100, error_rate=0.01)
+    abc = bloom_filter.BloomFilter(max_elements=100, error_rate=0.01,
+            redis_connection=redis)
     for character in ['a', 'b', 'c']:
         abc += character
 
-    bcd = bloom_filter.BloomFilter(max_elements=100, error_rate=0.01)
+    bcd = bloom_filter.BloomFilter(max_elements=100, error_rate=0.01,
+            redis_connection=redis)
     for character in ['b', 'c', 'd']:
         bcd += character
 
@@ -342,7 +355,9 @@ def test_bloom_filter():
                 database.close()
 
     # test prob count ok
-    bloom = bloom_filter.BloomFilter(1000000, error_rate=.99)
+
+    bloom = bloom_filter.BloomFilter(1000000, error_rate=.99,
+            redis_connection=redis)
     all_good &= bloom.num_probes_k == 1
     if not all_good:
         sys.stderr.write('%s: One or more tests failed\n' % sys.argv[0])

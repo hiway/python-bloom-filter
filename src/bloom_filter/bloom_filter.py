@@ -1,7 +1,6 @@
 # coding=utf-8
 # pylint: disable=superfluous-parens,redefined-variable-type
 # superfluous-parens: Sometimes extra parens are more clear
-
 """Bloom Filter: Probabilistic set membership testing for large sets"""
 
 # Shamelessly borrowed (under MIT license) from http://code.activestate.com/recipes/577686-bloom-filter/
@@ -15,10 +14,11 @@
 
 from __future__ import division
 import os
-#mport sys
+import time
 import math
 import array
 import random
+import redis as Redis
 
 try:
     import mmap as mmap_mod
@@ -27,10 +27,6 @@ except ImportError:
     HAVE_MMAP = False
 else:
     HAVE_MMAP = True
-
-#mport bufsock
-#mport hashlib
-#mport numbers
 
 import python2x3
 
@@ -49,8 +45,9 @@ def my_range(num_values):
         yield value
         value += 1
 
+
 # In the abstract, this is what we want &= and |= to do, but especially for disk-based filters, this is extremely slow
-#class Backend_set_operations:
+# class Backend_set_operations:
 #    """Provide &= and |= for backends"""
 #    # pylint: disable=W0232
 #    # W0232: We don't need an __init__ method; we're never instantiated directly
@@ -71,7 +68,6 @@ def my_range(num_values):
 #                self[bitno].set()
 #            else:
 #                self[bitno].clear()
-
 
 if HAVE_MMAP:
 
@@ -129,7 +125,8 @@ if HAVE_MMAP:
             assert self.num_bits == other.num_bits
 
             for byteno in my_range(self.num_chars):
-                self.mmap[byteno] = chr(ord(self.mmap[byteno]) & ord(other.mmap[byteno]))
+                self.mmap[byteno] = chr(
+                    ord(self.mmap[byteno]) & ord(other.mmap[byteno]))
 
             return self
 
@@ -137,7 +134,8 @@ if HAVE_MMAP:
             assert self.num_bits == other.num_bits
 
             for byteno in my_range(self.num_chars):
-                self.mmap[byteno] = chr(ord(self.mmap[byteno]) | ord(other.mmap[byteno]))
+                self.mmap[byteno] = chr(
+                    ord(self.mmap[byteno]) | ord(other.mmap[byteno]))
 
             return self
 
@@ -254,7 +252,7 @@ class Array_then_file_seek_backend(object):
     to the file.
     """
 
-    effs = 2 ** 8 - 1
+    effs = 2**8 - 1
 
     def __init__(self, num_bits, filename, max_bytes_in_memory):
         self.num_bits = num_bits
@@ -276,7 +274,7 @@ class Array_then_file_seek_backend(object):
 
         os.lseek(self.file_, 0, os.SEEK_SET)
         offset = 0
-        intended_block_len = 2 ** 17
+        intended_block_len = 2**17
         while True:
             if offset + intended_block_len < self.bytes_in_memory:
                 block = os.read(self.file_, intended_block_len)
@@ -385,7 +383,7 @@ class Array_backend(object):
     """Backend storage for our "array of bits" using a python array of integers"""
 
     # Note that this has now been split out into a bits_mod for the benefit of other projects.
-    effs = 2 ** 32 - 1
+    effs = 2**32 - 1
 
     def __init__(self, num_bits):
         self.num_bits = num_bits
@@ -433,6 +431,69 @@ class Array_backend(object):
         pass
 
 
+class Redis_backend(object):
+    """Backend storage using redis """
+
+    # Note that this has now been split out into a bits_mod for the benefit of other projects.
+
+    def __init__(self, num_bits, redis_key=None, redis=None, flush=False):
+        # Establish the redis conection
+        self.num_bits = num_bits
+        # If a redis object is not passed then create a simple redis object.
+        # Otherwise use what is passed in.  We will pass in a redis object when
+        # acluster redis is used since clusters have complex creation
+        # requiremnts.
+        self.connection = redis if redis else Redis.StrictRedis()
+        # Defining the redis key for storage reference
+        self.rediskey = redis_key if redis_key else "{RBF-}" + "{0}-{1}".format(
+            int(time.time()), random.randint(0, 10000))
+        if flush:
+            self.connection.delete(self.rediskey)
+        self.set(self.num_bits, set_value=0)
+
+    def is_set(self, bitno):
+        """Return true iff bit number bitno is set"""
+        return self.connection.getbit(self.rediskey, bitno)
+
+    def set(self, bitno, set_value=1):
+        # Add the bit number bitno to the redis - set value 1
+        self.connection.setbit(self.rediskey, bitno, set_value)
+
+    def clear(self, bitno):
+        """clear bit number bitno - set value 0"""
+        self.set(bitno, set_value=0)
+
+    # It'd be nice to do __iand__ and __ior__ in a base class, but that'd be Much slower
+    def __iand__(self, other):
+
+        overlap = self.num_bits if other.num_bits > self.num_bits else self.num_bits
+        for i in xrange(0, overlap):
+            if self.is_set(i) & (other.is_set(i) == 0):
+                self.set(i, set_value=0)
+
+        if other.num_bits > overlap:
+            for i in xrange(overlap, other.num_bits):
+                if self.is_set(i) & other.is_set(i) == 0:
+                    self.set(i, set_value=0)
+        return self
+
+    def __ior__(self, other):
+        overlap = self.num_bits if other.num_bits > self.num_bits else self.num_bits
+        for i in xrange(0, overlap):
+            if (self.is_set(i) == 0) & other.is_set(i):
+                self.set(i)
+
+        if other.num_bits > overlap:
+            for i in xrange(overlap, other.num_bits):
+                if (self.is_set(i) == 0) & other.is_set(i):
+                    self.set(i)
+        return self
+
+    def close(self):
+        """Noop for compatibility with the file+seek backend"""
+        pass
+
+
 def get_bitno_seed_rnd(bloom_filter, key):
     """Apply num_probes_k hash functions to key.  Generate the array index and bitmask corresponding to each result"""
 
@@ -443,8 +504,8 @@ def get_bitno_seed_rnd(bloom_filter, key):
         yield bitno % bloom_filter.num_bits_m
 
 
-MERSENNES1 = [2 ** x - 1 for x in [17, 31, 127]]
-MERSENNES2 = [2 ** x - 1 for x in [19, 67, 257]]
+MERSENNES1 = [2**x - 1 for x in [17, 31, 127]]
+MERSENNES2 = [2**x - 1 for x in [19, 67, 257]]
 
 
 def simple_hash(int_list, prime1, prime2, prime3):
@@ -507,11 +568,14 @@ def try_unlink(filename):
 
 class BloomFilter(object):
     """Probabilistic set membership testing for large sets"""
+
     def __init__(self,
                  max_elements=10000,
                  error_rate=0.1,
                  probe_bitnoer=get_filter_bitno_probes,
                  filename=None,
+                 redis_connection=None,
+                 redis_key=None,
                  start_fresh=False):
         # pylint: disable=R0913
         # R0913: We want a few arguments
@@ -520,33 +584,45 @@ class BloomFilter(object):
         if not (0 < error_rate < 1):
             raise ValueError('error_rate_p must be between 0 and 1 exclusive')
 
+        if filename and redis_connection:
+            raise ValueError('You can use either File or Redis backend')
+
         self.error_rate_p = error_rate
         # With fewer elements, we should do very well.  With more elements, our error rate "guarantee"
         # drops rapidly.
         self.ideal_num_elements_n = max_elements
 
-        numerator = -1 * self.ideal_num_elements_n * math.log(self.error_rate_p)
-        denominator = math.log(2) ** 2
+        numerator = -1 * self.ideal_num_elements_n * math.log(
+            self.error_rate_p)
+        denominator = math.log(2)**2
         real_num_bits_m = numerator / denominator
         self.num_bits_m = int(math.ceil(real_num_bits_m))
 
-        if filename is None:
-            self.backend = Array_backend(self.num_bits_m)
+        if redis_connection:
+            self.backend = Redis_backend(
+                self.num_bits_m,
+                redis_key=redis_key,
+                redis=redis_connection,
+                flush=start_fresh)
         elif isinstance(filename, tuple) and isinstance(filename[1], int):
             if start_fresh:
                 try_unlink(filename[0])
             if filename[1] == -1:
                 self.backend = Mmap_backend(self.num_bits_m, filename[0])
             else:
-                self.backend = Array_then_file_seek_backend(self.num_bits_m, filename[0], filename[1])
-        else:
+                self.backend = Array_then_file_seek_backend(
+                    self.num_bits_m, filename[0], filename[1])
+        elif filename:
             if start_fresh:
                 try_unlink(filename)
             self.backend = File_seek_backend(self.num_bits_m, filename)
+        else:
+            self.backend = Array_backend(self.num_bits_m)
 
         # AKA num_offsetters
         # Verified against http://en.wikipedia.org/wiki/Bloom_filter#Probability_of_false_positives
-        real_num_probes_k = (self.num_bits_m / self.ideal_num_elements_n) * math.log(2)
+        real_num_probes_k = (
+            self.num_bits_m / self.ideal_num_elements_n) * math.log(2)
         self.num_probes_k = int(math.ceil(real_num_probes_k))
         self.probe_bitnoer = probe_bitnoer
 
@@ -561,6 +637,11 @@ class BloomFilter(object):
         """Add an element to the filter"""
         for bitno in self.probe_bitnoer(self, key):
             self.backend.set(bitno)
+
+    def delete(self, key):
+        """Delete an element from the filter"""
+        for bitno in self.probe_bitnoer(self, key):
+            self.backend.clear(bitno)
 
     def __iadd__(self, key):
         self.add(key)
